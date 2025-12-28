@@ -23,6 +23,12 @@ search_keywords:
   - "configure development environment"
   - "getting started with terraform"
   - "first day setup"
+  - "what is chocolatey"
+  - "package manager for windows"
+  - "how to install tools on windows"
+  - "windows development setup"
+  - "automate software installation"
+  - "choco install"
 related_documents:
   - concept-iac-overview
   - howto-terraform-first-deployment
@@ -33,6 +39,8 @@ glossary_terms:
   - powershell
   - az_login
   - subscription
+  - chocolatey
+  - package_manager
 difficulty: beginner
 ---
 
@@ -74,6 +82,42 @@ Before proceeding, ensure:
 - [ ] You have stable internet connection
 - [ ] You have received Azure subscription details from team lead
 - [ ] You have been granted access to Azure DevOps
+
+## Understanding Package Managers
+
+Before we begin installing tools, it's helpful to understand **package managers** - they make software installation much easier.
+
+### What is Chocolatey?
+
+**Chocolatey** is a package manager for Windows, similar to:
+- **apt** on Ubuntu/Debian Linux
+- **Homebrew** on macOS
+- **yum** on Red Hat/CentOS
+
+Instead of manually:
+1. Googling for software downloads
+2. Clicking through installation wizards
+3. Manually checking for updates
+4. Adding programs to your PATH
+
+You can run simple commands:
+```powershell
+choco install terraform       # Install Terraform
+choco upgrade terraform        # Update Terraform
+choco list --local-only        # See what's installed
+```
+
+**Think of it like this**: Imagine you're building a LEGO house. Without a package manager, you'd need to find each LEGO brick individually from different stores. With Chocolatey, you tell it "I need a red 2x4 brick" and it fetches exactly what you need from a central warehouse.
+
+**Why we recommend it**:
+- ✓ Faster setup (one command vs 5 clicks)
+- ✓ Repeatable (same command works for everyone)
+- ✓ Scriptable (automate your entire workstation setup)
+- ✓ Consistent (same version for the whole team)
+
+**Note for macOS/Linux users**: You can skip Chocolatey-specific instructions and use Homebrew or your system's package manager instead.
+
+---
 
 ## Step-by-Step Instructions
 

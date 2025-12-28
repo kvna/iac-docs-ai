@@ -250,6 +250,31 @@ terms:
       - "az cli"
       - "azure command line"
 
+  - term: "chocolatey"
+    full_name: "Chocolatey Package Manager"
+    definition: "A package manager for Windows that automates software installation, upgrade, and removal. Similar to apt on Linux or Homebrew on macOS. Allows you to install tools like Terraform with simple commands (e.g., 'choco install terraform')."
+    category: "tool"
+    first_appears: "day1"
+    related_terms: ["package_manager", "powershell", "homebrew"]
+    vendor_docs: "https://chocolatey.org/"
+    search_keywords:
+      - "chocolatey package manager"
+      - "what is chocolatey"
+      - "windows package manager"
+      - "choco install"
+      - "automate windows installation"
+
+  - term: "package_manager"
+    full_name: "Package Manager"
+    definition: "Software that automates the process of installing, upgrading, configuring, and removing programs. Examples include Chocolatey (Windows), Homebrew (macOS), and apt (Linux)."
+    category: "concept"
+    first_appears: "day1"
+    related_terms: ["chocolatey", "homebrew", "apt"]
+    search_keywords:
+      - "package manager"
+      - "what is a package manager"
+      - "software installation automation"
+
   - term: "az_login"
     full_name: "Azure CLI Login"
     definition: "Command to authenticate with Azure using the Azure CLI. Required before running Terraform commands that interact with Azure."
