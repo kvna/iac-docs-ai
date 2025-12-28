@@ -56,40 +56,73 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         logger.info(f"Creating PR for document: {document_id}")
 
         # Extract suggestion data
-        modified_frontmatter = suggestions.get('modified_frontmatter', '')
-        modified_content = suggestions.get('content_changes', {}).get('modified_content', '')
         explanation = suggestions.get('explanation', '')
-        content_summary = suggestions.get('content_changes', {}).get('summary', '')
-        metadata_summary = suggestions.get('metadata_changes', {}).get('summary', '')
+        content_changes = suggestions.get('content_changes', {})
+        metadata_changes = suggestions.get('metadata_changes', {})
 
-        if not modified_frontmatter or not modified_content:
+        content_summary = content_changes.get('summary', '')
+        suggested_additions = content_changes.get('suggested_additions', '')
+        suggested_edits = content_changes.get('suggested_edits', '')
+        metadata_summary = metadata_changes.get('summary', '')
+
+        if not explanation:
             return create_error_response(
                 "Invalid suggestions format",
                 400,
-                "Modified frontmatter and content are required"
+                "AI suggestions are required"
             )
-
-        # Create full document with frontmatter
-        full_document = f"---\n{modified_frontmatter}\n---\n\n{modified_content}"
 
         # Initialize GitHub client
         g = Github(GITHUB_TOKEN)
         repo = g.get_repo(GITHUB_REPO)
 
-        # Determine file path
-        file_path = determine_file_path(repo, document_id)
-        if not file_path:
-            return create_error_response(
-                "Document not found in repository",
-                404,
-                f"Could not locate file for: {document_id}"
-            )
+        # Create suggestions document
+        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+        suggestions_content = f"""# AI Suggestions for {document_id}
 
-        logger.info(f"File path determined: {file_path}")
+**Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}
+
+## Overview
+{explanation}
+
+## Content Changes
+
+### Summary
+{content_summary}
+
+### Suggested Additions
+{suggested_additions if suggested_additions else '_No additions suggested_'}
+
+### Suggested Edits
+{suggested_edits if suggested_edits else '_No edits suggested_'}
+
+## Metadata Improvements
+
+### Summary
+{metadata_summary}
+
+### Search Keywords
+{', '.join(metadata_changes.get('search_keywords', []))}
+
+### Glossary Terms
+{', '.join(metadata_changes.get('glossary_terms', []))}
+
+### Related Documents
+{', '.join(metadata_changes.get('related_documents', []))}
+
+### Prerequisites
+{chr(10).join(f"- {p}" for p in metadata_changes.get('prerequisites', []))}
+
+### Learning Outcomes
+{chr(10).join(f"- {o}" for o in metadata_changes.get('learning_outcomes', []))}
+
+---
+
+**Next Steps**: Review these suggestions and manually apply them to `docs/{document_id}.md`
+"""
 
         # Create branch name
-        timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-        branch_name = f"ai-improve-{document_id}-{timestamp}"
+        branch_name = f"ai-suggestions-{document_id}-{timestamp}"
 
         # Get default branch
         default_branch = repo.default_branch
@@ -102,24 +135,23 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             sha=base_branch.commit.sha
         )
 
-        # Update file in new branch
-        logger.info(f"Updating file: {file_path}")
-        file_contents = repo.get_contents(file_path, ref=default_branch)
+        # Create suggestions file in new branch
+        suggestions_file_path = f"suggestions/{document_id}-{timestamp}.md"
+        logger.info(f"Creating suggestions file: {suggestions_file_path}")
 
-        commit_message = f"AI-suggested improvements to {document_id}\n\n{explanation}"
+        commit_message = f"AI suggestions for {document_id}\n\n{explanation}"
 
-        repo.update_file(
-            path=file_path,
+        repo.create_file(
+            path=suggestions_file_path,
             message=commit_message,
-            content=full_document,
-            sha=file_contents.sha,
+            content=suggestions_content,
             branch=branch_name
         )
 
         # Create Pull Request
         logger.info("Creating pull request")
 
-        pr_title = f"🤖 AI Improvements: {document_id}"
+        pr_title = f"🤖 AI Suggestions for {document_id}"
 
         pr_body = f"""## AI-Suggested Documentation Improvements
 
@@ -129,25 +161,33 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
 ### Summary
 {explanation}
 
-### Content Changes
-{content_summary}
+### 📄 Suggestions File
+This PR adds a suggestions file: `{suggestions_file_path}`
 
-### Metadata Changes
-{metadata_summary}
+The file contains:
+- **Content additions**: {content_summary}
+- **Metadata improvements**: {metadata_summary}
+
+### 📋 How to Apply
+1. Review the suggestions in `{suggestions_file_path}`
+2. Manually apply the relevant changes to `docs/{document_id}.md`
+3. Update the document's frontmatter metadata as suggested
+4. Delete the suggestions file after applying changes
+5. Commit the updates
 
 ---
 
 ### Review Checklist
-- [ ] Content changes are accurate and helpful
-- [ ] Metadata improvements enhance searchability
-- [ ] Code examples are correct (if applicable)
-- [ ] Links and references are valid
-- [ ] Formatting is consistent with style guide
+- [ ] Reviewed all AI suggestions for accuracy
+- [ ] Applied relevant content changes to the document
+- [ ] Updated metadata (search keywords, glossary terms, etc.)
+- [ ] Verified code examples are correct (if applicable)
+- [ ] Deleted suggestions file after applying changes
 
 ---
 
 *This pull request was automatically generated by AI based on user feedback.*
-*Please review carefully before merging.*
+*Review carefully and manually apply suggestions before merging.*
 
 **Generated**: {datetime.now().strftime("%Y-%m-%d %H:%M:%S UTC")}
 """
