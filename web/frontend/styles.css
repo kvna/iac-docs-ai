@@ -418,6 +418,14 @@ main {
     animation: slideUp 0.3s ease-out;
 }
 
+/* Larger modal for source documents */
+.source-document-modal {
+    max-width: 900px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+}
+
 @keyframes slideUp {
     from {
         transform: translateY(20px);
@@ -473,6 +481,101 @@ main {
     margin-bottom: 1rem;
     color: var(--text);
     line-height: 1.6;
+}
+
+/* Source document content */
+.source-document-content {
+    overflow-y: auto;
+    flex: 1;
+    padding: 2rem;
+}
+
+.source-document-content h1,
+.source-document-content h2,
+.source-document-content h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 0.75rem;
+    color: var(--text);
+}
+
+.source-document-content h1 { font-size: 1.75rem; }
+.source-document-content h2 { font-size: 1.5rem; }
+.source-document-content h3 { font-size: 1.25rem; }
+
+.source-document-content p {
+    margin-bottom: 1rem;
+    line-height: 1.8;
+}
+
+.source-document-content ul,
+.source-document-content ol {
+    margin-left: 1.5rem;
+    margin-bottom: 1rem;
+}
+
+.source-document-content li {
+    margin-bottom: 0.5rem;
+}
+
+.source-document-content code {
+    background: var(--bg);
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    color: var(--error);
+}
+
+.source-document-content pre {
+    background: #1E1E1E;
+    color: #D4D4D4;
+    padding: 1rem;
+    border-radius: 8px;
+    overflow-x: auto;
+    margin-bottom: 1rem;
+}
+
+.source-document-content pre code {
+    background: transparent;
+    color: inherit;
+    padding: 0;
+}
+
+.source-document-content a {
+    color: var(--primary);
+    text-decoration: none;
+}
+
+.source-document-content a:hover {
+    text-decoration: underline;
+}
+
+/* Modal footer */
+.source-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--bg);
+    border-radius: 0 0 12px 12px;
+}
+
+.view-on-github-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.25rem;
+    background: var(--text);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    transition: all 0.2s;
+}
+
+.view-on-github-btn:hover {
+    background: #000;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
 }
 
 .source-modal-body strong {

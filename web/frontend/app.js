@@ -187,9 +187,9 @@ function createSourceCard(source) {
 }
 
 // Open source file
-function openSourceFile(source) {
-    // GitHub repository URL
-    const githubBaseUrl = 'https://github.com/kvna/iac-docs-ai/blob/main/docs/';
+async function openSourceFile(source) {
+    // GitHub raw content URL
+    const githubRawBaseUrl = 'https://raw.githubusercontent.com/kvna/iac-docs-ai/main/docs/';
 
     console.log('Opening source:', source);
 
@@ -227,13 +227,191 @@ function openSourceFile(source) {
         fullPath = `${skillLevel}/${docId}.md`;
     }
 
-    // Construct the full GitHub URL
-    const githubUrl = githubBaseUrl + fullPath;
+    // Construct the full GitHub raw URL
+    const githubRawUrl = githubRawBaseUrl + fullPath;
 
-    console.log('GitHub URL:', githubUrl);
+    console.log('Fetching from:', githubRawUrl);
 
-    // Open GitHub link in new tab
-    window.open(githubUrl, '_blank', 'noopener,noreferrer');
+    // Show loading modal
+    showLoadingModal('Loading source document...');
+
+    try {
+        // Fetch the markdown content
+        const response = await fetch(githubRawUrl);
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch document: ${response.status}`);
+        }
+
+        const markdownContent = await response.text();
+
+        // Remove YAML frontmatter if present
+        const contentWithoutFrontmatter = markdownContent.replace(/^---[\s\S]*?---\n\n?/m, '');
+
+        // Display in modal
+        showSourceDocumentModal(source, contentWithoutFrontmatter);
+
+    } catch (error) {
+        console.error('Error fetching source:', error);
+        // Close loading modal
+        document.querySelector('.source-modal')?.remove();
+        // Show error
+        showSourceInfo(source, error.message);
+    }
+}
+
+// Show loading modal
+function showLoadingModal(message) {
+    const modal = document.createElement('div');
+    modal.className = 'source-modal';
+    modal.innerHTML = `
+        <div class="source-modal-content">
+            <div class="source-modal-body" style="text-align: center; padding: 3rem;">
+                <svg class="spinner" width="40" height="40" viewBox="0 0 24 24" style="margin-bottom: 1rem;">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25"/>
+                    <path d="M12 2 A10 10 0 0 1 22 12" stroke="var(--primary)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                </svg>
+                <p style="color: var(--text-secondary);">${message}</p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+}
+
+// Show source document in modal
+function showSourceDocumentModal(source, markdownContent) {
+    // Remove any existing modals
+    document.querySelectorAll('.source-modal').forEach(m => m.remove());
+
+    const modal = document.createElement('div');
+    modal.className = 'source-modal';
+
+    // Convert markdown to HTML
+    const htmlContent = markdownToHtml(markdownContent);
+
+    modal.innerHTML = `
+        <div class="source-modal-content source-document-modal">
+            <div class="source-modal-header">
+                <div>
+                    <h3>📄 ${source.title || source.document_id}</h3>
+                    <div class="source-meta" style="margin-top: 0.5rem;">
+                        <span class="source-type">${source.document_type || 'document'}</span>
+                        ${source.file_path ? `<span style="color: var(--text-secondary); font-size: 0.875rem;">${source.file_path}</span>` : ''}
+                    </div>
+                </div>
+                <button class="close-modal" onclick="this.closest('.source-modal').remove()">×</button>
+            </div>
+            <div class="source-modal-body source-document-content">
+                ${htmlContent}
+            </div>
+            <div class="source-modal-footer">
+                <a href="https://github.com/kvna/iac-docs-ai/blob/main/docs/${getDocumentPath(source)}"
+                   target="_blank"
+                   rel="noopener"
+                   class="view-on-github-btn">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    View on GitHub
+                </a>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Add copy buttons to code blocks in the modal
+    addCopyButtonsToModalCodeBlocks(modal);
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+// Helper function to get document path
+function getDocumentPath(source) {
+    const docId = source.document_id || '';
+    const docType = source.document_type || '';
+
+    if (docType === 'learning-path' || docId.startsWith('learning-path')) {
+        return `learning-paths/${docId}.md`;
+    } else if (docType === 'troubleshooting' || docId.startsWith('troubleshooting')) {
+        return `troubleshooting/${docId}.md`;
+    } else if (docType === 'reference' || docId.startsWith('reference')) {
+        return `reference/${docId}.md`;
+    } else {
+        const skillLevelPrefixes = {
+            'day1': 'day1',
+            'week': 'week1-4',
+            'month1': 'month1-2',
+            'month3': 'month3-6',
+            'month6': 'month6-12'
+        };
+
+        let skillLevel = 'day1';
+        for (const [prefix, folder] of Object.entries(skillLevelPrefixes)) {
+            if (docId.includes(prefix)) {
+                skillLevel = folder;
+                break;
+            }
+        }
+
+        return `${skillLevel}/${docId}.md`;
+    }
+}
+
+// Add copy buttons to code blocks in modal
+function addCopyButtonsToModalCodeBlocks(modal) {
+    const codeBlocks = modal.querySelectorAll('pre');
+
+    codeBlocks.forEach((pre) => {
+        // Skip if already has copy button
+        if (pre.querySelector('.copy-btn')) return;
+
+        // Create wrapper
+        const wrapper = document.createElement('div');
+        wrapper.className = 'code-block-wrapper';
+
+        // Wrap the pre element
+        pre.parentNode.insertBefore(wrapper, pre);
+        wrapper.appendChild(pre);
+
+        // Create copy button
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'copy-btn';
+        copyBtn.innerHTML = `
+            <svg class="copy-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="9" y="9" width="13" height="13" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M5 15H4C2.89543 15 2 14.1046 2 13V4C2 2.89543 2.89543 2 4 2H13C14.1046 2 15 2.89543 15 4V5" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span class="copy-text">Copy</span>
+            <span class="copied-text" style="display: none;">Copied!</span>
+        `;
+
+        copyBtn.addEventListener('click', () => {
+            const code = pre.querySelector('code');
+            const text = code.textContent;
+
+            navigator.clipboard.writeText(text).then(() => {
+                copyBtn.querySelector('.copy-text').style.display = 'none';
+                copyBtn.querySelector('.copied-text').style.display = 'inline';
+                copyBtn.classList.add('copied');
+
+                setTimeout(() => {
+                    copyBtn.querySelector('.copy-text').style.display = 'inline';
+                    copyBtn.querySelector('.copied-text').style.display = 'none';
+                    copyBtn.classList.remove('copied');
+                }, 2000);
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+            });
+        });
+
+        wrapper.appendChild(copyBtn);
+    });
 }
 
 // Show source information modal
