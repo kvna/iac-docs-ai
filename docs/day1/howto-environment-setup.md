@@ -70,7 +70,7 @@ You will install:
 ### Setup Checklist
 
 Before proceeding, ensure:
-- [X] You have administrator/sudo access
+- [ ] You have administrator/sudo access
 - [ ] You have stable internet connection
 - [ ] You have received Azure subscription details from team lead
 - [ ] You have been granted access to Azure DevOps
