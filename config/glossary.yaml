@@ -1,0 +1,610 @@
+# IaC Documentation Glossary
+# This glossary provides canonical definitions for all terms used in the documentation
+# Format: YAML for easy parsing and validation
+# Last Updated: 2025-12-27
+
+version: "1.0"
+last_updated: "2025-12-27"
+
+terms:
+  # Infrastructure as Code Core Concepts
+  - term: "iac"
+    full_name: "Infrastructure as Code"
+    definition: "The practice of managing and provisioning infrastructure through machine-readable definition files rather than manual processes or interactive configuration tools."
+    category: "core_concept"
+    first_appears: "day1"
+    related_terms: ["terraform", "declarative", "version_control"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/devops/deliver/what-is-infrastructure-as-code"
+    search_keywords:
+      - "infrastructure as code"
+      - "what is iac"
+      - "iac definition"
+
+  - term: "terraform"
+    full_name: "Terraform"
+    definition: "An open-source infrastructure as code software tool created by HashiCorp that enables users to define and provision infrastructure using a declarative configuration language called HCL."
+    category: "tool"
+    first_appears: "day1"
+    related_terms: ["hcl", "state_file", "provider", "module"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/developer/terraform/overview"
+    vendor_docs: "https://www.terraform.io/docs"
+    search_keywords:
+      - "terraform tool"
+      - "what is terraform"
+      - "terraform overview"
+
+  - term: "hcl"
+    full_name: "HashiCorp Configuration Language"
+    definition: "A declarative language used by Terraform to describe infrastructure. HCL is designed to be human-readable and machine-friendly."
+    category: "language"
+    first_appears: "week1-4"
+    related_terms: ["terraform", "declarative"]
+    vendor_docs: "https://github.com/hashicorp/hcl"
+    search_keywords:
+      - "hcl language"
+      - "terraform language"
+      - "hashicorp configuration language"
+
+  - term: "declarative"
+    full_name: "Declarative Programming"
+    definition: "A programming paradigm where you describe the desired end state rather than the steps to achieve it. Terraform uses declarative syntax to define infrastructure."
+    category: "concept"
+    first_appears: "day1"
+    related_terms: ["imperative", "iac"]
+    search_keywords:
+      - "declarative vs imperative"
+      - "declarative infrastructure"
+
+  # Terraform Core Concepts
+  - term: "state_file"
+    full_name: "Terraform State File"
+    definition: "A JSON file (terraform.tfstate) that maps real-world resources to your Terraform configuration. It tracks metadata and is essential for Terraform to know what infrastructure it manages."
+    category: "terraform_concept"
+    first_appears: "week1-4"
+    related_terms: ["backend", "state_locking", "remote_state"]
+    vendor_docs: "https://www.terraform.io/docs/language/state/index.html"
+    search_keywords:
+      - "terraform state"
+      - "tfstate file"
+      - "state file purpose"
+    security_note: "State files may contain sensitive data. Always store securely and never commit to version control."
+
+  - term: "terraform_init"
+    full_name: "Terraform Init"
+    definition: "The first command to run in a new or existing Terraform configuration. It initializes the working directory, downloads providers, and sets up the backend."
+    category: "terraform_command"
+    first_appears: "week1-4"
+    related_terms: ["provider", "backend", "terraform_workflow"]
+    vendor_docs: "https://www.terraform.io/docs/cli/commands/init.html"
+    search_keywords:
+      - "terraform init"
+      - "initialize terraform"
+      - "terraform setup"
+
+  - term: "terraform_plan"
+    full_name: "Terraform Plan"
+    definition: "A command that creates an execution plan showing what Terraform will do when you apply your configuration. It performs a refresh and determines what actions are necessary to achieve the desired state."
+    category: "terraform_command"
+    first_appears: "week1-4"
+    related_terms: ["terraform_apply", "terraform_workflow", "execution_plan"]
+    vendor_docs: "https://www.terraform.io/docs/cli/commands/plan.html"
+    search_keywords:
+      - "terraform plan"
+      - "preview terraform changes"
+      - "terraform dry run"
+
+  - term: "terraform_apply"
+    full_name: "Terraform Apply"
+    definition: "A command that executes the actions proposed in a Terraform plan to create, update, or delete infrastructure to match the configuration."
+    category: "terraform_command"
+    first_appears: "week1-4"
+    related_terms: ["terraform_plan", "terraform_workflow"]
+    vendor_docs: "https://www.terraform.io/docs/cli/commands/apply.html"
+    search_keywords:
+      - "terraform apply"
+      - "deploy terraform"
+      - "execute terraform plan"
+
+  - term: "terraform_destroy"
+    full_name: "Terraform Destroy"
+    definition: "A command that destroys all resources managed by the Terraform configuration. Use with caution in production environments."
+    category: "terraform_command"
+    first_appears: "week1-4"
+    related_terms: ["terraform_apply"]
+    vendor_docs: "https://www.terraform.io/docs/cli/commands/destroy.html"
+    search_keywords:
+      - "terraform destroy"
+      - "delete terraform resources"
+      - "teardown infrastructure"
+    security_note: "Always run terraform plan -destroy first to preview what will be deleted."
+
+  - term: "provider"
+    full_name: "Terraform Provider"
+    definition: "A plugin that enables Terraform to interact with an API, such as Azure, AWS, or GCP. Providers are responsible for understanding API interactions and exposing resources."
+    category: "terraform_concept"
+    first_appears: "week1-4"
+    related_terms: ["azurerm_provider", "terraform_init"]
+    vendor_docs: "https://www.terraform.io/docs/language/providers/index.html"
+    search_keywords:
+      - "terraform provider"
+      - "what is a provider"
+      - "terraform plugins"
+
+  - term: "azurerm_provider"
+    full_name: "Azure Resource Manager Provider"
+    definition: "The Terraform provider for Microsoft Azure. It allows Terraform to manage Azure resources through the Azure Resource Manager API."
+    category: "provider"
+    first_appears: "week1-4"
+    related_terms: ["provider", "azure_resource_manager"]
+    vendor_docs: "https://registry.terraform.io/providers/hashicorp/azurerm/latest/docs"
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/developer/terraform/"
+    search_keywords:
+      - "azurerm provider"
+      - "terraform azure provider"
+      - "azure terraform"
+
+  - term: "module"
+    full_name: "Terraform Module"
+    definition: "A container for multiple resources that are used together. Modules are used to create reusable components and organize configuration."
+    category: "terraform_concept"
+    first_appears: "month1-2"
+    related_terms: ["root_module", "child_module", "module_source"]
+    vendor_docs: "https://www.terraform.io/docs/language/modules/index.html"
+    search_keywords:
+      - "terraform module"
+      - "terraform reusable code"
+      - "module structure"
+
+  - term: "backend"
+    full_name: "Terraform Backend"
+    definition: "Determines how state is loaded and how operations like terraform apply are executed. Backends can be local or remote (e.g., Azure Storage)."
+    category: "terraform_concept"
+    first_appears: "month1-2"
+    related_terms: ["state_file", "remote_state", "azurerm_backend"]
+    vendor_docs: "https://www.terraform.io/docs/language/settings/backends/index.html"
+    search_keywords:
+      - "terraform backend"
+      - "remote state storage"
+      - "backend configuration"
+
+  - term: "azurerm_backend"
+    full_name: "Azure Storage Backend"
+    definition: "A Terraform backend that stores state files in Azure Blob Storage, enabling team collaboration and state locking."
+    category: "backend"
+    first_appears: "month1-2"
+    related_terms: ["backend", "state_locking", "storage_account"]
+    vendor_docs: "https://www.terraform.io/docs/language/settings/backends/azurerm.html"
+    search_keywords:
+      - "azure backend terraform"
+      - "azurerm backend"
+      - "terraform azure blob storage"
+
+  - term: "state_locking"
+    full_name: "State Locking"
+    definition: "A mechanism that prevents multiple users from simultaneously running Terraform operations that could corrupt the state file. Azure Storage backend uses blob leases for locking."
+    category: "terraform_concept"
+    first_appears: "month1-2"
+    related_terms: ["state_file", "backend", "concurrent_operations"]
+    vendor_docs: "https://www.terraform.io/docs/language/state/locking.html"
+    search_keywords:
+      - "state locking"
+      - "terraform lock"
+      - "prevent concurrent terraform"
+
+  # Azure Core Concepts
+  - term: "azure"
+    full_name: "Microsoft Azure"
+    definition: "Microsoft's public cloud computing platform providing IaaS, PaaS, and SaaS services."
+    category: "platform"
+    first_appears: "day1"
+    related_terms: ["azure_portal", "azure_cli", "subscription"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/"
+    search_keywords:
+      - "microsoft azure"
+      - "azure cloud"
+
+  - term: "subscription"
+    full_name: "Azure Subscription"
+    definition: "A logical container for Azure resources. It's linked to an Azure account and serves as a billing boundary."
+    category: "azure_concept"
+    first_appears: "day1"
+    related_terms: ["resource_group", "management_group", "tenant"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/initial-subscriptions"
+    search_keywords:
+      - "azure subscription"
+      - "subscription scope"
+
+  - term: "resource_group"
+    full_name: "Azure Resource Group"
+    definition: "A logical container that holds related Azure resources. Resource groups enable you to manage and organize resources as a single unit."
+    category: "azure_concept"
+    first_appears: "day1"
+    related_terms: ["subscription", "resource", "azure_resource_manager"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/manage-resource-groups-portal"
+    search_keywords:
+      - "resource group"
+      - "azure resource group"
+      - "rg azure"
+
+  - term: "azure_resource_manager"
+    full_name: "Azure Resource Manager (ARM)"
+    definition: "The deployment and management service for Azure. It provides a management layer that enables you to create, update, and delete resources in your Azure account."
+    category: "azure_service"
+    first_appears: "week1-4"
+    related_terms: ["resource_group", "arm_template", "azurerm_provider"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/azure-resource-manager/management/overview"
+    search_keywords:
+      - "azure resource manager"
+      - "arm azure"
+      - "what is arm"
+
+  - term: "azure_cli"
+    full_name: "Azure Command-Line Interface"
+    definition: "A cross-platform command-line tool to manage Azure resources. Commonly used for authentication and resource management alongside Terraform."
+    category: "tool"
+    first_appears: "day1"
+    related_terms: ["az_login", "azure_powershell"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/cli/azure/"
+    search_keywords:
+      - "azure cli"
+      - "az cli"
+      - "azure command line"
+
+  - term: "az_login"
+    full_name: "Azure CLI Login"
+    definition: "Command to authenticate with Azure using the Azure CLI. Required before running Terraform commands that interact with Azure."
+    category: "command"
+    first_appears: "day1"
+    related_terms: ["azure_cli", "service_principal", "authentication"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/cli/azure/authenticate-azure-cli"
+    search_keywords:
+      - "az login"
+      - "azure cli login"
+      - "authenticate azure"
+
+  - term: "storage_account"
+    full_name: "Azure Storage Account"
+    definition: "A unique namespace in Azure for storing data objects including blobs, files, queues, and tables. Commonly used for Terraform backend storage."
+    category: "azure_resource"
+    first_appears: "week1-4"
+    related_terms: ["blob_storage", "azurerm_backend", "storage_container"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/storage/common/storage-account-overview"
+    search_keywords:
+      - "storage account"
+      - "azure storage"
+
+  - term: "blob_storage"
+    full_name: "Azure Blob Storage"
+    definition: "Microsoft's object storage solution for the cloud, optimized for storing massive amounts of unstructured data such as text or binary data."
+    category: "azure_service"
+    first_appears: "week1-4"
+    related_terms: ["storage_account", "storage_container"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-overview"
+    search_keywords:
+      - "blob storage"
+      - "azure blob"
+      - "object storage azure"
+
+  # Azure DevOps
+  - term: "azure_devops"
+    full_name: "Azure DevOps"
+    definition: "Microsoft's suite of development tools including Azure Repos, Pipelines, Boards, Test Plans, and Artifacts for managing the complete software development lifecycle."
+    category: "platform"
+    first_appears: "week1-4"
+    related_terms: ["pipeline", "azure_repos", "build_agent"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/devops/"
+    search_keywords:
+      - "azure devops"
+      - "ado"
+      - "vsts"
+
+  - term: "pipeline"
+    full_name: "Azure DevOps Pipeline"
+    definition: "An automated process that builds, tests, and deploys code. Can be defined using YAML or the classic editor."
+    category: "azure_devops_concept"
+    first_appears: "week1-4"
+    related_terms: ["yaml_pipeline", "build_agent", "deployment_stage"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/devops/pipelines/"
+    search_keywords:
+      - "azure pipeline"
+      - "devops pipeline"
+      - "ci/cd pipeline"
+
+  - term: "yaml_pipeline"
+    full_name: "YAML Pipeline"
+    definition: "A pipeline defined using YAML (azure-pipelines.yml) that describes the build, test, and deployment process as code."
+    category: "azure_devops_concept"
+    first_appears: "month1-2"
+    related_terms: ["pipeline", "pipeline_as_code"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/devops/pipelines/yaml-schema"
+    search_keywords:
+      - "yaml pipeline"
+      - "pipeline as code"
+      - "azure-pipelines.yml"
+
+  - term: "build_agent"
+    full_name: "Build Agent"
+    definition: "A compute resource (virtual machine) that runs pipeline jobs. Can be Microsoft-hosted or self-hosted."
+    category: "azure_devops_concept"
+    first_appears: "month1-2"
+    related_terms: ["pipeline", "agent_pool", "self_hosted_agent"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/devops/pipelines/agents/agents"
+    search_keywords:
+      - "build agent"
+      - "pipeline agent"
+      - "azure agent"
+
+  - term: "service_connection"
+    full_name: "Service Connection"
+    definition: "A secure connection from Azure DevOps to external services like Azure, GitHub, or Docker registries. Required for pipelines to deploy to Azure."
+    category: "azure_devops_concept"
+    first_appears: "month1-2"
+    related_terms: ["service_principal", "pipeline", "authentication"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/devops/pipelines/library/service-endpoints"
+    search_keywords:
+      - "service connection"
+      - "azure devops connection"
+      - "service endpoint"
+
+  - term: "service_principal"
+    full_name: "Service Principal"
+    definition: "An identity created for use with automated tools, apps, and services to access Azure resources. Used by Terraform and Azure DevOps for authentication."
+    category: "azure_concept"
+    first_appears: "month1-2"
+    related_terms: ["service_connection", "rbac", "authentication"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/active-directory/develop/app-objects-and-service-principals"
+    search_keywords:
+      - "service principal"
+      - "azure service principal"
+      - "spn azure"
+    security_note: "Service principal credentials should be stored securely in Azure Key Vault or Azure DevOps variable groups."
+
+  # PowerShell
+  - term: "powershell"
+    full_name: "PowerShell"
+    definition: "A task automation and configuration management framework from Microsoft, consisting of a command-line shell and scripting language."
+    category: "tool"
+    first_appears: "day1"
+    related_terms: ["powershell_core", "cmdlet", "azure_powershell"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/powershell/"
+    search_keywords:
+      - "powershell"
+      - "windows powershell"
+
+  - term: "powershell_core"
+    full_name: "PowerShell Core (PowerShell 7+)"
+    definition: "Cross-platform version of PowerShell built on .NET Core, runs on Windows, Linux, and macOS."
+    category: "tool"
+    first_appears: "day1"
+    related_terms: ["powershell"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/powershell/scripting/whats-new/what-s-new-in-powershell-7"
+    search_keywords:
+      - "powershell core"
+      - "powershell 7"
+      - "cross platform powershell"
+
+  - term: "azure_powershell"
+    full_name: "Azure PowerShell"
+    definition: "A set of cmdlets for managing Azure resources directly from PowerShell. Alternative to Azure CLI."
+    category: "tool"
+    first_appears: "week1-4"
+    related_terms: ["powershell", "azure_cli", "az_module"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/powershell/azure/"
+    search_keywords:
+      - "azure powershell"
+      - "az powershell module"
+
+  # Security & Compliance
+  - term: "rbac"
+    full_name: "Role-Based Access Control"
+    definition: "Azure's authorization system that provides fine-grained access management to Azure resources based on user roles."
+    category: "security_concept"
+    first_appears: "month1-2"
+    related_terms: ["service_principal", "managed_identity", "azure_ad"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/role-based-access-control/overview"
+    search_keywords:
+      - "rbac azure"
+      - "role based access control"
+      - "azure permissions"
+
+  - term: "managed_identity"
+    full_name: "Managed Identity"
+    definition: "An Azure AD identity automatically managed by Azure that eliminates the need to store credentials in code. Preferred over service principals for Azure resources."
+    category: "security_concept"
+    first_appears: "month3-6"
+    related_terms: ["service_principal", "azure_ad", "authentication"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/active-directory/managed-identities-azure-resources/overview"
+    search_keywords:
+      - "managed identity"
+      - "azure managed identity"
+      - "msi azure"
+
+  - term: "key_vault"
+    full_name: "Azure Key Vault"
+    definition: "A cloud service for securely storing and accessing secrets, keys, and certificates. Used to store sensitive Terraform variables and pipeline secrets."
+    category: "azure_service"
+    first_appears: "month1-2"
+    related_terms: ["secret_management", "service_principal"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/key-vault/general/overview"
+    search_keywords:
+      - "key vault"
+      - "azure key vault"
+      - "secret storage azure"
+    security_note: "Key Vault should be used for all sensitive data including connection strings, passwords, and certificates."
+
+  # Networking
+  - term: "virtual_network"
+    full_name: "Azure Virtual Network (VNet)"
+    definition: "The fundamental building block for private networks in Azure. VNets enable Azure resources to securely communicate with each other, the internet, and on-premises networks."
+    category: "azure_resource"
+    first_appears: "month1-2"
+    related_terms: ["subnet", "nsg", "private_endpoint"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-networks-overview"
+    search_keywords:
+      - "virtual network"
+      - "vnet azure"
+      - "azure networking"
+
+  - term: "subnet"
+    full_name: "Subnet"
+    definition: "A range of IP addresses within a virtual network. Subnets enable you to segment the virtual network into smaller networks."
+    category: "networking_concept"
+    first_appears: "month1-2"
+    related_terms: ["virtual_network", "cidr", "address_space"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/virtual-network/virtual-network-manage-subnet"
+    search_keywords:
+      - "subnet azure"
+      - "vnet subnet"
+
+  - term: "nsg"
+    full_name: "Network Security Group"
+    definition: "Contains security rules that allow or deny inbound/outbound network traffic to Azure resources. Acts as a firewall for subnets and network interfaces."
+    category: "azure_resource"
+    first_appears: "month1-2"
+    related_terms: ["subnet", "security_rule", "virtual_network"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/virtual-network/network-security-groups-overview"
+    search_keywords:
+      - "network security group"
+      - "nsg azure"
+      - "azure firewall rules"
+
+  # Best Practices & Patterns
+  - term: "naming_convention"
+    full_name: "Naming Convention"
+    definition: "Standardized approach to naming Azure resources for consistency, clarity, and management. Example: rg-projectname-env-region."
+    category: "best_practice"
+    first_appears: "week1-4"
+    related_terms: ["tagging_strategy", "resource_organization"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-naming"
+    search_keywords:
+      - "naming convention"
+      - "azure naming standards"
+      - "resource naming"
+
+  - term: "tagging_strategy"
+    full_name: "Tagging Strategy"
+    definition: "Consistent application of metadata tags to Azure resources for organization, cost management, and automation. Common tags include environment, owner, cost-center."
+    category: "best_practice"
+    first_appears: "month1-2"
+    related_terms: ["naming_convention", "cost_management"]
+    microsoft_docs: "https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/azure-best-practices/resource-tagging"
+    search_keywords:
+      - "tagging strategy"
+      - "azure tags"
+      - "resource tags"
+
+  - term: "environment_separation"
+    full_name: "Environment Separation"
+    definition: "Practice of maintaining separate infrastructure for development, testing, staging, and production environments to prevent accidental changes to production."
+    category: "best_practice"
+    first_appears: "month1-2"
+    related_terms: ["workspace", "terraform_workspace", "subscription"]
+    search_keywords:
+      - "environment separation"
+      - "dev test prod environments"
+      - "environment isolation"
+
+  # Advanced Terraform Concepts
+  - term: "variable"
+    full_name: "Terraform Variable"
+    definition: "Input parameters for Terraform modules that enable customization without modifying the source code."
+    category: "terraform_concept"
+    first_appears: "week1-4"
+    related_terms: ["output", "locals", "tfvars"]
+    vendor_docs: "https://www.terraform.io/docs/language/values/variables.html"
+    search_keywords:
+      - "terraform variables"
+      - "input variables"
+      - "terraform parameters"
+
+  - term: "output"
+    full_name: "Terraform Output"
+    definition: "Values exported by a Terraform module that can be used by other modules or displayed to users."
+    category: "terraform_concept"
+    first_appears: "week1-4"
+    related_terms: ["variable", "module"]
+    vendor_docs: "https://www.terraform.io/docs/language/values/outputs.html"
+    search_keywords:
+      - "terraform output"
+      - "output values"
+      - "terraform export"
+
+  - term: "data_source"
+    full_name: "Terraform Data Source"
+    definition: "Allows Terraform to use information defined outside of Terraform, such as existing Azure resources."
+    category: "terraform_concept"
+    first_appears: "month1-2"
+    related_terms: ["resource", "dynamic_data"]
+    vendor_docs: "https://www.terraform.io/docs/language/data-sources/index.html"
+    search_keywords:
+      - "terraform data source"
+      - "data block terraform"
+      - "query existing resources"
+
+  - term: "terraform_workspace"
+    full_name: "Terraform Workspace"
+    definition: "Isolated instances of state data within the same configuration, enabling management of multiple environments with the same code."
+    category: "terraform_concept"
+    first_appears: "month3-6"
+    related_terms: ["environment_separation", "state_file"]
+    vendor_docs: "https://www.terraform.io/docs/language/state/workspaces.html"
+    search_keywords:
+      - "terraform workspace"
+      - "terraform environments"
+      - "workspace isolation"
+
+# Acronyms commonly used
+acronyms:
+  - acronym: "IaC"
+    full_term: "iac"
+  - acronym: "HCL"
+    full_term: "hcl"
+  - acronym: "ARM"
+    full_term: "azure_resource_manager"
+  - acronym: "RG"
+    full_term: "resource_group"
+  - acronym: "RBAC"
+    full_term: "rbac"
+  - acronym: "NSG"
+    full_term: "nsg"
+  - acronym: "VNet"
+    full_term: "virtual_network"
+  - acronym: "ADO"
+    full_term: "azure_devops"
+  - acronym: "SPN"
+    full_term: "service_principal"
+  - acronym: "KV"
+    full_term: "key_vault"
+
+# Categories for organizing terms
+categories:
+  - name: "core_concept"
+    description: "Fundamental IaC and cloud concepts"
+  - name: "tool"
+    description: "Software tools and utilities"
+  - name: "terraform_concept"
+    description: "Terraform-specific concepts and features"
+  - name: "terraform_command"
+    description: "Terraform CLI commands"
+  - name: "azure_concept"
+    description: "General Azure concepts"
+  - name: "azure_resource"
+    description: "Specific Azure resource types"
+  - name: "azure_service"
+    description: "Azure platform services"
+  - name: "azure_devops_concept"
+    description: "Azure DevOps concepts and features"
+  - name: "security_concept"
+    description: "Security and compliance concepts"
+  - name: "best_practice"
+    description: "Recommended practices and patterns"
+  - name: "networking_concept"
+    description: "Networking concepts"
+  - name: "language"
+    description: "Programming and configuration languages"
+  - name: "provider"
+    description: "Terraform providers"
+  - name: "backend"
+    description: "Terraform backends"
+  - name: "command"
+    description: "CLI commands"

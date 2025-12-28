@@ -1,0 +1,60 @@
+# Terraform
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+*.tfvars
+!terraform.tfvars.example
+crash.log
+crash.*.log
+
+# Azure Functions
+web/api/local.settings.json
+web/api/.venv/
+web/api/__pycache__/
+web/api/*.pyc
+web/api/.python_packages/
+web/api/.funcignore
+
+# Node
+web/frontend/node_modules/
+web/frontend/package-lock.json
+
+# Python
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+.venv/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Logs
+*.log
+logs/
+
+# Environment variables
+.env
+.env.local
+
+# Build artifacts
+*.zip
+dist/
+build/
+
+# Sensitive files
+**/local.settings.json
+**/*credentials*
+**/*secrets*
+**/.azure/

@@ -1,0 +1,76 @@
+# Example terraform.tfvars file
+# Copy this file to terraform.tfvars and customize for your deployment
+
+##############################################################################
+# Core Configuration
+##############################################################################
+
+location    = "northeurope"
+region_code = "northeu"
+
+cost_center = "IT-Learning"
+owner       = "your.email@company.com"
+
+##############################################################################
+# Azure AI Search Configuration
+##############################################################################
+
+# SKU Options:
+# - "free": No cost, 50MB storage, 3 indexes (good for initial POC)
+# - "basic": ~$75/month, 2GB storage, 15 indexes (better for testing)
+# - "standard": ~$250/month, more capacity (production-like)
+search_sku = "free"
+
+# Enable semantic search for better AI-powered results
+enable_semantic_search = true
+
+##############################################################################
+# Azure OpenAI Configuration
+##############################################################################
+
+# OpenAI is only available in specific regions
+# Sweden Central is closest to North Europe with OpenAI availability
+# Check current availability: https://learn.microsoft.com/azure/ai-services/openai/concepts/models
+openai_location = "swedencentral"
+
+##############################################################################
+# Function App Configuration
+##############################################################################
+
+# SKU Options:
+# - "Y1": Consumption plan (pay per execution, includes free tier)
+# - "B1": Basic plan (~$13/month, always-on capability)
+# - "S1": Standard plan (~$70/month, more features)
+function_app_sku = "Y1"
+
+##############################################################################
+# Optional Features
+##############################################################################
+
+# Enable Application Insights for monitoring
+enable_monitoring = true
+
+# Enable diagnostic logs (increases costs)
+enable_diagnostic_logs = false
+
+# Deploy static web app for UI (optional)
+enable_static_web_app = false
+
+##############################################################################
+# Network Security (Optional)
+##############################################################################
+
+# Leave empty to allow all IPs (default for POC)
+# Add your IP or company IP ranges for security
+# Example: ["203.0.113.0/24", "198.51.100.0/24"]
+allowed_ip_ranges = []
+
+##############################################################################
+# Additional Tags
+##############################################################################
+
+additional_tags = {
+  Project     = "IaC Documentation Modernization"
+  Department  = "IT"
+  Criticality = "Low"  # POC environment
+}

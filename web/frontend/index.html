@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>IaC Documentation Assistant</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="logo">
+                <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <rect width="40" height="40" rx="8" fill="#0078D4"/>
+                    <path d="M20 10L28 15V25L20 30L12 25V15L20 10Z" stroke="white" stroke-width="2" stroke-linejoin="round"/>
+                    <path d="M20 20V30" stroke="white" stroke-width="2"/>
+                    <path d="M12 15L20 20L28 15" stroke="white" stroke-width="2"/>
+                </svg>
+            </div>
+            <h1>Infrastructure as Code Documentation</h1>
+            <p class="subtitle">AI-powered search for Terraform and Azure documentation</p>
+        </header>
+
+        <main>
+            <div class="search-container">
+                <div class="search-box">
+                    <svg class="search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                        <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    <input
+                        type="text"
+                        id="queryInput"
+                        placeholder="Ask a question about Terraform, Azure, or Infrastructure as Code..."
+                        autocomplete="off"
+                    />
+                    <button id="searchBtn" class="search-btn">
+                        <span class="btn-text">Search</span>
+                        <span class="btn-loading" style="display: none;">
+                            <svg class="spinner" width="20" height="20" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25"/>
+                                <path d="M12 2 A10 10 0 0 1 22 12" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+                <div class="quick-questions">
+                    <span class="label">Try asking:</span>
+                    <button class="quick-q" data-question="How do I set up my development environment for Terraform?">Setup environment</button>
+                    <button class="quick-q" data-question="How do I manage Terraform state?">Manage state</button>
+                    <button class="quick-q" data-question="What are common Terraform errors?">Common errors</button>
+                    <button class="quick-q" data-question="How do I create reusable Terraform modules?">Create modules</button>
+                </div>
+            </div>
+
+            <div id="results" class="results-container" style="display: none;">
+                <div class="answer-section">
+                    <div class="section-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h2>Answer</h2>
+                    </div>
+                    <div id="answerContent" class="answer-content"></div>
+                </div>
+
+                <div class="sources-section">
+                    <div class="section-header">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <h3>Sources</h3>
+                    </div>
+                    <div id="sourcesContent" class="sources-content"></div>
+                </div>
+            </div>
+
+            <div id="error" class="error-container" style="display: none;">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#D13438" stroke-width="2"/>
+                    <path d="M12 8v4m0 4h.01" stroke="#D13438" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <div id="errorContent"></div>
+            </div>
+
+            <div class="examples-section">
+                <h3>Example Questions</h3>
+                <div class="examples-grid">
+                    <div class="example-card">
+                        <h4>Getting Started</h4>
+                        <ul>
+                            <li>What is Infrastructure as Code?</li>
+                            <li>How do I install Terraform?</li>
+                            <li>How do I authenticate to Azure?</li>
+                        </ul>
+                    </div>
+                    <div class="example-card">
+                        <h4>Best Practices</h4>
+                        <ul>
+                            <li>What are Terraform naming conventions?</li>
+                            <li>How should I organize my Terraform code?</li>
+                            <li>How do I manage multiple environments?</li>
+                        </ul>
+                    </div>
+                    <div class="example-card">
+                        <h4>Troubleshooting</h4>
+                        <ul>
+                            <li>Why am I getting authentication errors?</li>
+                            <li>How do I fix state lock conflicts?</li>
+                            <li>What does 'resource already exists' mean?</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </main>
+
+        <footer>
+            <p>Powered by Azure AI Search and OpenAI GPT-4</p>
+        </footer>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
