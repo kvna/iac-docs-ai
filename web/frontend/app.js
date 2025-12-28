@@ -237,26 +237,41 @@ async function openSourceFile(source) {
 
     try {
         // Fetch the markdown content
-        const response = await fetch(githubRawUrl);
+        console.log('Fetching markdown from:', githubRawUrl);
+        const response = await fetch(githubRawUrl, {
+            mode: 'cors',
+            cache: 'no-cache'
+        });
+
+        console.log('Fetch response status:', response.status);
 
         if (!response.ok) {
-            throw new Error(`Failed to fetch document: ${response.status}`);
+            throw new Error(`Failed to fetch document (HTTP ${response.status})`);
         }
 
         const markdownContent = await response.text();
+        console.log('Fetched markdown length:', markdownContent.length);
 
         // Remove YAML frontmatter if present
         const contentWithoutFrontmatter = markdownContent.replace(/^---[\s\S]*?---\n\n?/m, '');
+
+        console.log('Content after removing frontmatter length:', contentWithoutFrontmatter.length);
+
+        // Close loading modal
+        document.querySelector('.source-modal')?.remove();
 
         // Display in modal
         showSourceDocumentModal(source, contentWithoutFrontmatter);
 
     } catch (error) {
-        console.error('Error fetching source:', error);
+        console.error('❌ Error fetching source document:', error);
+        console.error('Attempted URL:', githubRawUrl);
+
         // Close loading modal
         document.querySelector('.source-modal')?.remove();
-        // Show error
-        showSourceInfo(source, error.message);
+
+        // Show error modal with better message
+        showFetchErrorModal(source, error.message, githubRawUrl);
     }
 }
 
@@ -414,7 +429,47 @@ function addCopyButtonsToModalCodeBlocks(modal) {
     });
 }
 
-// Show source information modal
+// Show fetch error modal
+function showFetchErrorModal(source, errorMessage, attemptedUrl) {
+    const modal = document.createElement('div');
+    modal.className = 'source-modal';
+
+    const githubUrl = `https://github.com/kvna/iac-docs-ai/blob/main/docs/${getDocumentPath(source)}`;
+
+    modal.innerHTML = `
+        <div class="source-modal-content">
+            <div class="source-modal-header">
+                <h3>⚠️ Failed to Load Document</h3>
+                <button class="close-modal" onclick="this.closest('.source-modal').remove()">×</button>
+            </div>
+            <div class="source-modal-body">
+                <p><strong>Document:</strong> ${source.title || source.document_id}</p>
+                <p><strong>Error:</strong> ${errorMessage}</p>
+                <p style="margin-top: 1.5rem; padding: 1rem; background: var(--bg); border-radius: 6px; font-size: 0.875rem;">
+                    <strong>Debug Info:</strong><br>
+                    Document ID: <code>${source.document_id}</code><br>
+                    Document Type: <code>${source.document_type}</code><br>
+                    Attempted URL: <code style="word-break: break-all;">${attemptedUrl}</code>
+                </p>
+                <p style="margin-top: 1rem;">
+                    <a href="${githubUrl}" target="_blank" rel="noopener" class="view-on-github-btn">
+                        View on GitHub instead →
+                    </a>
+                </p>
+            </div>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+// Show source information modal (legacy - for reference)
 function showSourceInfo(source) {
     const modal = document.createElement('div');
     modal.className = 'source-modal';
