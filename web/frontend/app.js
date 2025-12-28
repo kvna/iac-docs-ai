@@ -878,13 +878,13 @@ function showAISuggestions(documentId, documentTitle, data) {
                         ${content_changes.suggested_additions ? `
                             <div style="margin-bottom: 1rem;">
                                 <strong style="color: #2E7D32; display: block; margin-bottom: 0.5rem;">✚ Suggested Additions:</strong>
-                                <div style="padding-left: 1rem; line-height: 1.6;">${markdownToHtml(content_changes.suggested_additions)}</div>
+                                <div style="padding-left: 1rem; line-height: 1.6;">${markdownToHtml(Array.isArray(content_changes.suggested_additions) ? content_changes.suggested_additions.join('\n\n') : content_changes.suggested_additions)}</div>
                             </div>
                         ` : ''}
                         ${content_changes.suggested_edits ? `
                             <div>
                                 <strong style="color: #1976D2; display: block; margin-bottom: 0.5rem;">✎ Suggested Edits:</strong>
-                                <div style="padding-left: 1rem; line-height: 1.6;">${markdownToHtml(content_changes.suggested_edits)}</div>
+                                <div style="padding-left: 1rem; line-height: 1.6;">${markdownToHtml(Array.isArray(content_changes.suggested_edits) ? content_changes.suggested_edits.join('\n\n') : content_changes.suggested_edits)}</div>
                             </div>
                         ` : ''}
                         ${!content_changes.suggested_additions && !content_changes.suggested_edits ? '<p style="color: var(--text-secondary);">No specific changes suggested</p>' : ''}
