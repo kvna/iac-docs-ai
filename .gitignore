@@ -19,6 +19,7 @@ web/api/.funcignore
 # Node
 web/frontend/node_modules/
 web/frontend/package-lock.json
+web/frontend/.swa-deploy/
 
 # Python
 *.pyc

@@ -2,3 +2,4 @@ azure-functions
 azure-search-documents==11.4.0
 openai>=1.0.0
 python-dotenv==1.0.0
+PyGithub==2.1.1

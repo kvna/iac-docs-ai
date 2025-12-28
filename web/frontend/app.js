@@ -320,6 +320,12 @@ function showSourceDocumentModal(source, markdownContent) {
                 ${htmlContent}
             </div>
             <div class="source-modal-footer">
+                <button class="suggest-improvement-btn" onclick="showImprovementDialog('${source.document_id}', '${(source.title || '').replace(/'/g, "\\'")}')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    💡 Suggest Improvement
+                </button>
                 <a href="https://github.com/kvna/iac-docs-ai/blob/main/docs/${getDocumentPath(source)}"
                    target="_blank"
                    rel="noopener"
@@ -635,6 +641,445 @@ function addCopyButtonsToCodeBlocks() {
         });
 
         wrapper.appendChild(copyBtn);
+    });
+}
+
+// Show improvement suggestion dialog
+function showImprovementDialog(documentId, documentTitle) {
+    // Store current document for later use
+    window.currentDocumentForImprovement = { documentId, documentTitle };
+
+    const dialog = document.createElement('div');
+    dialog.className = 'source-modal';
+    dialog.innerHTML = `
+        <div class="source-modal-content improvement-dialog">
+            <div class="source-modal-header">
+                <div>
+                    <h3>💡 Suggest Improvement</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">
+                        Document: ${documentTitle}
+                    </p>
+                </div>
+                <button class="close-modal" onclick="this.closest('.source-modal').remove()">×</button>
+            </div>
+            <div class="source-modal-body">
+                <p style="margin-bottom: 1rem;">
+                    Describe what you'd like to improve, add, or clarify in this document.
+                    Our AI will analyze it and suggest specific changes.
+                </p>
+
+                <label for="improvementType" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                    Type of improvement:
+                </label>
+                <select id="improvementType" style="width: 100%; padding: 0.75rem; margin-bottom: 1rem; border: 2px solid var(--border); border-radius: 6px; font-size: 1rem;">
+                    <option value="add-content">Add missing content</option>
+                    <option value="clarify">Clarify existing content</option>
+                    <option value="fix-error">Fix technical error</option>
+                    <option value="update">Update outdated information</option>
+                    <option value="example">Add code example</option>
+                    <option value="other">Other improvement</option>
+                </select>
+
+                <label for="improvementFeedback" style="display: block; margin-bottom: 0.5rem; font-weight: 600;">
+                    What would you like to improve?
+                </label>
+                <textarea
+                    id="improvementFeedback"
+                    placeholder="Example: Add a section explaining how to backup Terraform state files to Azure Storage..."
+                    style="width: 100%; min-height: 120px; padding: 0.75rem; border: 2px solid var(--border); border-radius: 6px; font-size: 1rem; font-family: inherit; resize: vertical;"
+                ></textarea>
+
+                <div style="margin-top: 1rem; padding: 1rem; background: #E8F4FD; border-left: 4px solid var(--primary); border-radius: 6px;">
+                    <strong>💡 Tip:</strong> Be specific! The more detail you provide, the better the AI suggestions will be.
+                </div>
+            </div>
+            <div class="source-modal-footer" style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="this.closest('.source-modal').remove()">
+                    Cancel
+                </button>
+                <button class="btn-primary" onclick="requestAIImprovement()">
+                    <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M13 10V3L4 14h7v7l9-11h-7z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                    </svg>
+                    Get AI Suggestions
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(dialog);
+
+    // Focus textarea
+    setTimeout(() => {
+        document.getElementById('improvementFeedback').focus();
+    }, 100);
+
+    // Close on background click
+    dialog.addEventListener('click', (e) => {
+        if (e.target === dialog) {
+            dialog.remove();
+        }
+    });
+}
+
+// Request AI improvement suggestions
+async function requestAIImprovement() {
+    const feedback = document.getElementById('improvementFeedback').value.trim();
+    const improvementType = document.getElementById('improvementType').value;
+
+    if (!feedback) {
+        alert('Please describe what you\'d like to improve.');
+        return;
+    }
+
+    const { documentId, documentTitle } = window.currentDocumentForImprovement;
+
+    // Close dialog and show loading
+    document.querySelectorAll('.source-modal').forEach(m => m.remove());
+    showLoadingModal('🤖 AI is analyzing the document and generating suggestions...');
+
+    try {
+        console.log('Requesting AI suggestions for:', documentId);
+
+        // Call Azure Function endpoint
+        const response = await fetch(`${CONFIG.apiEndpoint.replace('/ask', '/suggest-improvement')}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                document_id: documentId,
+                improvement_type: improvementType,
+                feedback: feedback
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        console.log('AI suggestions received:', data);
+
+        // Close loading modal
+        document.querySelector('.source-modal')?.remove();
+
+        // Show suggestions
+        showAISuggestions(documentId, documentTitle, data);
+
+    } catch (error) {
+        console.error('Error getting AI suggestions:', error);
+        document.querySelector('.source-modal')?.remove();
+
+        // Show error
+        showError(`Failed to get AI suggestions: ${error.message}\n\nNote: This feature requires the /api/suggest-improvement endpoint to be deployed.`);
+    }
+}
+
+// Show AI suggestions with diff
+function showAISuggestions(documentId, documentTitle, data) {
+    // Store suggestions for PR creation
+    window.currentSuggestions = data;
+
+    const modal = document.createElement('div');
+    modal.className = 'source-modal';
+
+    const {
+        explanation,
+        content_changes = {},
+        metadata_changes = {},
+        modified_frontmatter,
+        modified_content
+    } = data;
+
+    // Render metadata improvements
+    const metadataHtml = renderMetadataChanges(metadata_changes);
+
+    modal.innerHTML = `
+        <div class="source-modal-content ai-suggestions-modal" style="max-width: 1000px;">
+            <div class="source-modal-header">
+                <div>
+                    <h3>🤖 AI Suggestions</h3>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">
+                        ${escapeHtml(documentTitle)}
+                    </p>
+                </div>
+                <button class="close-modal" onclick="this.closest('.source-modal').remove()">×</button>
+            </div>
+            <div class="source-modal-body" style="max-height: 70vh; overflow-y: auto; padding: 1.5rem;">
+                <!-- AI Analysis -->
+                <div style="padding: 1rem; background: #E8F4FD; border-left: 4px solid var(--primary); border-radius: 6px; margin-bottom: 1.5rem;">
+                    <strong>💡 AI Analysis:</strong>
+                    <p style="margin: 0.5rem 0 0 0;">${escapeHtml(explanation || 'The AI has suggested improvements to enhance this document.')}</p>
+                </div>
+
+                <!-- Metadata Improvements Section -->
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+                        </svg>
+                        Metadata Improvements (Searchability)
+                    </h4>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                        ${escapeHtml(metadata_changes.summary || 'These improvements help users find this document more easily')}
+                    </p>
+                    ${metadataHtml}
+                </div>
+
+                <!-- Content Changes Section -->
+                <div style="margin-bottom: 2rem;">
+                    <h4 style="margin-bottom: 0.5rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M14 2H6c-1.1 0-1.99.9-1.99 2L4 20c0 1.1.89 2 1.99 2H18c1.1 0 2-.9 2-2V8l-6-6zm2 16H8v-2h8v2zm0-4H8v-2h8v2zm-3-5V3.5L18.5 9H13z"/>
+                        </svg>
+                        Content Changes
+                    </h4>
+                    <p style="color: var(--text-secondary); font-size: 0.875rem; margin-bottom: 1rem;">
+                        ${escapeHtml(content_changes.summary || 'Improvements to document content')}
+                    </p>
+                    <div class="diff-preview" style="background: var(--bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto;">
+                        <pre style="margin: 0; white-space: pre-wrap; font-family: monospace; font-size: 0.875rem; line-height: 1.5;">${escapeHtml(content_changes.modified_content || modified_content || 'No content changes')}</pre>
+                    </div>
+                </div>
+
+                <!-- Review Warning -->
+                <div style="margin-top: 1.5rem; padding: 1rem; background: #FFF4E5; border-left: 4px solid #FF9800; border-radius: 6px;">
+                    <strong>⚠️ Review Required:</strong>
+                    <p style="margin: 0.5rem 0 0 0; color: var(--text-secondary); font-size: 0.875rem;">
+                        Please review the suggestions carefully. You can create a Pull Request with these changes,
+                        which will require approval before merging.
+                    </p>
+                </div>
+            </div>
+            <div class="source-modal-footer" style="display: flex; gap: 1rem; justify-content: flex-end;">
+                <button class="btn-secondary" onclick="this.closest('.source-modal').remove()">
+                    Discard
+                </button>
+                <button class="btn-primary" onclick="createPullRequest('${escapeHtml(documentId)}', '${escapeHtml(documentTitle)}')">
+                    <svg class="btn-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    Create Pull Request
+                </button>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close on background click
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
+    });
+}
+
+// Render metadata changes as structured list
+function renderMetadataChanges(metadata) {
+    if (!metadata || Object.keys(metadata).length === 0) {
+        return '<p style="color: var(--text-secondary); font-size: 0.875rem;">No metadata changes suggested.</p>';
+    }
+
+    let html = '<div style="background: white; border: 1px solid var(--border); border-radius: 6px; padding: 1rem;">';
+
+    // Search Keywords
+    if (metadata.search_keywords && metadata.search_keywords.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <strong style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M15.5 14h-.79l-.28-.27C15.41 12.59 16 11.11 16 9.5 16 5.91 13.09 3 9.5 3S3 5.91 3 9.5 5.91 16 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 11.99 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 11.99 14 9.5 14z"/>
+                    </svg>
+                    Search Keywords
+                </strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${metadata.search_keywords.map(kw => `<span style="background: #E3F2FD; color: #1976D2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem;">${escapeHtml(kw)}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Glossary Terms
+    if (metadata.glossary_terms && metadata.glossary_terms.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <strong style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M21 5c-1.11-.35-2.33-.5-3.5-.5-1.95 0-4.05.4-5.5 1.5-1.45-1.1-3.55-1.5-5.5-1.5S2.45 4.9 1 6v14.65c0 .25.25.5.5.5.1 0 .15-.05.25-.05C3.1 20.45 5.05 20 6.5 20c1.95 0 4.05.4 5.5 1.5 1.35-.85 3.8-1.5 5.5-1.5 1.65 0 3.35.3 4.75 1.05.1.05.15.05.25.05.25 0 .5-.25.5-.5V6c-.6-.45-1.25-.75-2-1zm0 13.5c-1.1-.35-2.3-.5-3.5-.5-1.7 0-4.15.65-5.5 1.5V8c1.35-.85 3.8-1.5 5.5-1.5 1.2 0 2.4.15 3.5.5v11.5z"/>
+                    </svg>
+                    Glossary Terms
+                </strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${metadata.glossary_terms.map(term => `<span style="background: #F3E5F5; color: #7B1FA2; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem;">${escapeHtml(term)}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Related Documents
+    if (metadata.related_documents && metadata.related_documents.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <strong style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M3 13h2v-2H3v2zm0 4h2v-2H3v2zm0-8h2V7H3v2zm4 4h14v-2H7v2zm0 4h14v-2H7v2zM7 7v2h14V7H7z"/>
+                    </svg>
+                    Related Documents
+                </strong>
+                <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;">
+                    ${metadata.related_documents.map(doc => `<span style="background: #E8F5E9; color: #388E3C; padding: 0.25rem 0.75rem; border-radius: 12px; font-size: 0.875rem; font-family: monospace;">${escapeHtml(doc)}</span>`).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    // Prerequisites
+    if (metadata.prerequisites && metadata.prerequisites.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <strong style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    Prerequisites
+                </strong>
+                <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.875rem;">
+                    ${metadata.prerequisites.map(prereq => `<li>${escapeHtml(prereq)}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    // Learning Outcomes
+    if (metadata.learning_outcomes && metadata.learning_outcomes.length > 0) {
+        html += `
+            <div style="margin-bottom: 1rem;">
+                <strong style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.5rem;">
+                    Learning Outcomes
+                </strong>
+                <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.875rem;">
+                    ${metadata.learning_outcomes.map(outcome => `<li>${escapeHtml(outcome)}</li>`).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    // Other metadata
+    if (metadata.other_metadata && Object.keys(metadata.other_metadata).length > 0) {
+        html += `
+            <div>
+                <strong style="margin-bottom: 0.5rem; display: block;">Other Improvements</strong>
+                <ul style="margin: 0; padding-left: 1.5rem; color: var(--text-secondary); font-size: 0.875rem;">
+                    ${Object.entries(metadata.other_metadata).map(([key, value]) =>
+                        `<li><strong>${escapeHtml(key)}:</strong> ${escapeHtml(String(value))}</li>`
+                    ).join('')}
+                </ul>
+            </div>
+        `;
+    }
+
+    html += '</div>';
+    return html;
+}
+
+// HTML escape helper
+function escapeHtml(text) {
+    if (typeof text !== 'string') return '';
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+}
+
+// Render diff view
+function renderDiff(changes) {
+    if (!changes || typeof changes !== 'string') {
+        return '<p style="color: var(--text-secondary);">No specific changes provided.</p>';
+    }
+
+    // Convert markdown changes to HTML
+    const html = markdownToHtml(changes);
+
+    return `<div class="diff-view">${html}</div>`;
+}
+
+// Create Pull Request
+async function createPullRequest(documentId, documentTitle) {
+    showLoadingModal('Creating Pull Request on GitHub...');
+
+    try {
+        const response = await fetch(`${CONFIG.apiEndpoint.replace('/ask', '/create-pr')}`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                document_id: documentId,
+                suggestions: window.currentSuggestions
+            })
+        });
+
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
+            throw new Error(errorData.error || `HTTP ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        // Close loading modal
+        document.querySelector('.source-modal')?.remove();
+
+        // Show success with PR link
+        showPRSuccess(data.pr_url, documentTitle);
+
+    } catch (error) {
+        console.error('Error creating PR:', error);
+        document.querySelector('.source-modal')?.remove();
+
+        showError(`Failed to create Pull Request: ${error.message}\n\nNote: This feature requires GitHub API integration to be configured.`);
+    }
+}
+
+// Show PR success
+function showPRSuccess(prUrl, documentTitle) {
+    const modal = document.createElement('div');
+    modal.className = 'source-modal';
+
+    modal.innerHTML = `
+        <div class="source-modal-content">
+            <div class="source-modal-header">
+                <h3>✅ Pull Request Created!</h3>
+                <button class="close-modal" onclick="this.closest('.source-modal').remove()">×</button>
+            </div>
+            <div class="source-modal-body" style="text-align: center; padding: 2rem;">
+                <svg width="80" height="80" viewBox="0 0 24 24" fill="none" style="margin-bottom: 1.5rem;">
+                    <circle cx="12" cy="12" r="10" stroke="var(--success)" stroke-width="2" fill="none"/>
+                    <path d="M8 12l2 2 4-4" stroke="var(--success)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+
+                <p style="font-size: 1.125rem; margin-bottom: 1.5rem;">
+                    Your suggested improvements for <strong>${documentTitle}</strong> have been submitted as a Pull Request!
+                </p>
+
+                <p style="color: var(--text-secondary); margin-bottom: 2rem;">
+                    A team member will review your suggestions and merge them if approved.
+                </p>
+
+                <a href="${prUrl}" target="_blank" rel="noopener" class="btn-primary" style="display: inline-flex; align-items: center; gap: 0.5rem; text-decoration: none;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                    </svg>
+                    View Pull Request
+                </a>
+            </div>
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+            modal.remove();
+        }
     });
 }
 
