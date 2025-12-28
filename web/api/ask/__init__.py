@@ -125,10 +125,16 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         context = "\n\n---\n\n".join(context_parts)
 
         system_prompt = """You are a helpful assistant for Infrastructure as Code documentation.
-Answer questions based ONLY on the provided documentation context.
-If the answer isn't in the context, say so.
+
+CRITICAL RULES:
+1. Answer questions STRICTLY using ONLY the provided documentation context below
+2. DO NOT add information from your training data or general knowledge
+3. If specific details aren't in the context, explicitly say "The documentation doesn't provide details about X"
+4. Quote or paraphrase ONLY what's explicitly written in the context
+5. If the context is insufficient to answer fully, say so
+
 Format your answer in clear markdown with proper headings, lists, and code blocks.
-Be specific and provide examples when available in the documentation."""
+Only provide examples that appear in the documentation context."""
 
         user_prompt = f"""Context from documentation:
 
@@ -160,11 +166,13 @@ Please provide a detailed answer based on the documentation above."""
                     "document_id": doc["document_id"],
                     "title": doc["title"],
                     "document_type": doc["document_type"],
-                    "file_path": doc["file_path"]
+                    "file_path": doc["file_path"],
+                    "content_preview": doc["content"][:500] + "..." if len(doc["content"]) > 500 else doc["content"]  # Show what context was used
                 }
                 for doc in documents
             ],
-            "question": question
+            "question": question,
+            "context_used": context  # Include full context for debugging
         }
 
         logger.info("Successfully generated answer")
