@@ -877,14 +877,14 @@ function showAISuggestions(documentId, documentTitle, data) {
                     <div class="diff-preview" style="background: var(--bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto;">
                         ${content_changes.suggested_additions ? `
                             <div style="margin-bottom: 1rem;">
-                                <strong style="color: #2E7D32;">✚ Suggested Additions:</strong>
-                                <p style="margin: 0.5rem 0 0 0; padding-left: 1rem;">${escapeHtml(content_changes.suggested_additions)}</p>
+                                <strong style="color: #2E7D32; display: block; margin-bottom: 0.5rem;">✚ Suggested Additions:</strong>
+                                <div style="padding-left: 1rem; line-height: 1.6;">${markdownToHtml(content_changes.suggested_additions)}</div>
                             </div>
                         ` : ''}
                         ${content_changes.suggested_edits ? `
                             <div>
-                                <strong style="color: #1976D2;">✎ Suggested Edits:</strong>
-                                <p style="margin: 0.5rem 0 0 0; padding-left: 1rem;">${escapeHtml(content_changes.suggested_edits)}</p>
+                                <strong style="color: #1976D2; display: block; margin-bottom: 0.5rem;">✎ Suggested Edits:</strong>
+                                <div style="padding-left: 1rem; line-height: 1.6;">${markdownToHtml(content_changes.suggested_edits)}</div>
                             </div>
                         ` : ''}
                         ${!content_changes.suggested_additions && !content_changes.suggested_edits ? '<p style="color: var(--text-secondary);">No specific changes suggested</p>' : ''}

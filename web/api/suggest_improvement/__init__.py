@@ -244,14 +244,14 @@ IMPORTANT: In the modified_content field, do NOT include the entire document. Ju
 
 Format your response as a JSON object with this structure:
 {
-  "explanation": "Brief explanation of the improvements",
+  "explanation": "Brief explanation of the improvements (1-2 sentences)",
   "content_changes": {
-    "summary": "Description of what content changes to make",
-    "suggested_additions": "List key points or sections to add",
-    "suggested_edits": "List specific edits to make"
+    "summary": "High-level description of changes (1 sentence)",
+    "suggested_additions": "Bullet list of SPECIFIC content to add. Include actual text/examples where possible. Format as markdown list.",
+    "suggested_edits": "Bullet list of SPECIFIC edits to make. Include before/after examples. Format as markdown list."
   },
   "metadata_changes": {
-    "summary": "What metadata changes are proposed",
+    "summary": "What metadata changes are proposed (1 sentence)",
     "search_keywords": ["keyword1", "keyword2", "keyword3"],
     "glossary_terms": ["term1", "term2"],
     "related_documents": ["doc-id-1", "doc-id-2"],
@@ -260,7 +260,10 @@ Format your response as a JSON object with this structure:
   }
 }
 
-Keep all text values SHORT and simple. Do NOT include full document content in the JSON.
+CRITICAL: In suggested_additions and suggested_edits, be VERY specific and detailed.
+- Don't just say "add examples" - give the actual example text
+- Don't just say "clarify section" - explain what clarification to add
+- Include actual content that can be copy-pasted into the document
 Be specific and actionable in your suggestions."""
 
     user_prompt = f"""Document ID: {document_id}
