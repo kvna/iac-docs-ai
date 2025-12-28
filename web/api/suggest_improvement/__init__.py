@@ -46,11 +46,47 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         )
 
     try:
-        # Parse request body
-        req_body = req.get_json()
+        # Get raw body and parse manually (Azure Functions req.get_json() has issues)
+        try:
+            raw_body = req.get_body().decode('utf-8')
+            logger.info(f"✅ Got raw body successfully, length: {len(raw_body)}")
+            logger.info(f"Raw request body (first 200 chars): {raw_body[:200]}")
+        except Exception as body_error:
+            logger.error(f"❌ Error getting request body: {str(body_error)}")
+            return create_error_response(
+                "Body Read Error",
+                400,
+                f"Could not read request body: {str(body_error)}"
+            )
+
+        # Parse JSON manually instead of using req.get_json()
+        try:
+            req_body = json.loads(raw_body)
+            logger.info("JSON parsed successfully")
+        except (json.JSONDecodeError, ValueError) as json_error:
+            logger.error(f"JSON parsing error: {str(json_error)}")
+            logger.error(f"Error type: {type(json_error).__name__}")
+            logger.error(f"Raw request body (first 500): {raw_body[:500]}")
+            logger.error(f"Raw request body (full length): {len(raw_body)}")
+            # Return raw body preview in error for debugging
+            return create_error_response(
+                "JSON Parse Error",
+                400,
+                f"{str(json_error)} | Body (first 200 chars): {raw_body[:200]}"
+            )
+
+        if not req_body:
+            return create_error_response(
+                "Empty request body",
+                400,
+                "Request body is required"
+            )
+
         document_id = req_body.get('document_id', '').strip()
         improvement_type = req_body.get('improvement_type', '').strip()
         feedback = req_body.get('feedback', '').strip()
+
+        logger.info(f"Request received - Document: {document_id}, Type: {improvement_type}, Feedback length: {len(feedback)}")
 
         if not all([document_id, improvement_type, feedback]):
             return create_error_response(
@@ -103,10 +139,6 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
                 "Access-Control-Allow-Origin": "*"
             }
         )
-
-    except ValueError as e:
-        logger.error(f"Invalid request: {str(e)}")
-        return create_error_response("Invalid request format", 400, str(e))
 
     except Exception as e:
         logger.error(f"Error processing request: {str(e)}", exc_info=True)
@@ -196,6 +228,8 @@ def generate_suggestions(
     system_prompt = """You are an expert technical documentation editor specializing in Infrastructure as Code documentation.
 Your goal is to improve documentation quality and searchability.
 
+CRITICAL: You MUST return valid JSON. Properly escape all special characters including quotes, newlines, and backslashes.
+
 When suggesting improvements, you should:
 1. Improve CONTENT based on the user's feedback
 2. Suggest METADATA improvements to enhance searchability:
@@ -206,27 +240,27 @@ When suggesting improvements, you should:
    - learning_outcomes: What users will learn (specific, measurable)
    - tags/topics: Categorization for better discovery
 
+IMPORTANT: In the modified_content field, do NOT include the entire document. Just provide a SUMMARY of changes in plain text.
+
 Format your response as a JSON object with this structure:
 {
-  "explanation": "Brief explanation of the improvements (2-3 sentences)",
+  "explanation": "Brief explanation of the improvements",
   "content_changes": {
-    "summary": "What content changes are proposed",
-    "modified_content": "The full improved content (markdown format, without frontmatter)"
+    "summary": "Description of what content changes to make",
+    "suggested_additions": "List key points or sections to add",
+    "suggested_edits": "List specific edits to make"
   },
   "metadata_changes": {
     "summary": "What metadata changes are proposed",
-    "search_keywords": ["list", "of", "improved", "keywords"],
-    "glossary_terms": ["list", "of", "terms"],
+    "search_keywords": ["keyword1", "keyword2", "keyword3"],
+    "glossary_terms": ["term1", "term2"],
     "related_documents": ["doc-id-1", "doc-id-2"],
-    "prerequisites": ["updated prerequisites"],
-    "learning_outcomes": ["specific learning outcome 1", "specific learning outcome 2"],
-    "other_metadata": {
-      "field_name": "value"
-    }
-  },
-  "modified_frontmatter": "The complete improved YAML frontmatter (without --- markers)"
+    "prerequisites": ["prerequisite1", "prerequisite2"],
+    "learning_outcomes": ["outcome1", "outcome2"]
+  }
 }
 
+Keep all text values SHORT and simple. Do NOT include full document content in the JSON.
 Be specific and actionable in your suggestions."""
 
     user_prompt = f"""Document ID: {document_id}
@@ -259,7 +293,15 @@ Return your suggestions in the JSON format specified."""
         )
 
         suggestions_json = chat_response.choices[0].message.content
-        suggestions = json.loads(suggestions_json)
+        logger.info(f"OpenAI response length: {len(suggestions_json)}")
+        logger.info(f"OpenAI response (first 300 chars): {suggestions_json[:300]}")
+
+        try:
+            suggestions = json.loads(suggestions_json)
+        except json.JSONDecodeError as parse_error:
+            logger.error(f"Failed to parse OpenAI response as JSON: {str(parse_error)}")
+            logger.error(f"OpenAI response (first 1000 chars): {suggestions_json[:1000]}")
+            raise ValueError(f"OpenAI returned invalid JSON: {str(parse_error)}")
 
         # Add original content for comparison
         suggestions['original_content'] = content

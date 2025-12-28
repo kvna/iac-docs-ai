@@ -875,7 +875,19 @@ function showAISuggestions(documentId, documentTitle, data) {
                         ${escapeHtml(content_changes.summary || 'Improvements to document content')}
                     </p>
                     <div class="diff-preview" style="background: var(--bg); padding: 1rem; border-radius: 6px; border: 1px solid var(--border); max-height: 400px; overflow-y: auto;">
-                        <pre style="margin: 0; white-space: pre-wrap; font-family: monospace; font-size: 0.875rem; line-height: 1.5;">${escapeHtml(content_changes.modified_content || modified_content || 'No content changes')}</pre>
+                        ${content_changes.suggested_additions ? `
+                            <div style="margin-bottom: 1rem;">
+                                <strong style="color: #2E7D32;">✚ Suggested Additions:</strong>
+                                <p style="margin: 0.5rem 0 0 0; padding-left: 1rem;">${escapeHtml(content_changes.suggested_additions)}</p>
+                            </div>
+                        ` : ''}
+                        ${content_changes.suggested_edits ? `
+                            <div>
+                                <strong style="color: #1976D2;">✎ Suggested Edits:</strong>
+                                <p style="margin: 0.5rem 0 0 0; padding-left: 1rem;">${escapeHtml(content_changes.suggested_edits)}</p>
+                            </div>
+                        ` : ''}
+                        ${!content_changes.suggested_additions && !content_changes.suggested_edits ? '<p style="color: var(--text-secondary);">No specific changes suggested</p>' : ''}
                     </div>
                 </div>
 
