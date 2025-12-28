@@ -732,35 +732,62 @@ async function requestAIImprovement() {
         return;
     }
 
+    // Safety check
+    if (!window.currentDocumentForImprovement) {
+        console.error('currentDocumentForImprovement is not set');
+        alert('Error: Document information not found. Please try again.');
+        return;
+    }
+
     const { documentId, documentTitle } = window.currentDocumentForImprovement;
+
+    // Validate we have the required data
+    if (!documentId || !improvementType || !feedback) {
+        console.error('Missing required data:', { documentId, improvementType, feedback });
+        alert('Error: Missing required information. Please try again.');
+        return;
+    }
 
     // Close dialog and show loading
     document.querySelectorAll('.source-modal').forEach(m => m.remove());
     showLoadingModal('🤖 AI is analyzing the document and generating suggestions...');
 
     try {
-        console.log('Requesting AI suggestions for:', documentId);
+        const endpoint = `${CONFIG.apiEndpoint.replace('/ask', '/suggest-improvement')}`;
+        const requestBody = {
+            document_id: documentId,
+            improvement_type: improvementType,
+            feedback: feedback
+        };
+
+        console.log('🔍 Requesting AI suggestions');
+        console.log('  Endpoint:', endpoint);
+        console.log('  Document ID:', documentId);
+        console.log('  Improvement Type:', improvementType);
+        console.log('  Feedback:', feedback.substring(0, 50) + '...');
 
         // Call Azure Function endpoint
-        const response = await fetch(`${CONFIG.apiEndpoint.replace('/ask', '/suggest-improvement')}`, {
+        const response = await fetch(endpoint, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
             },
-            body: JSON.stringify({
-                document_id: documentId,
-                improvement_type: improvementType,
-                feedback: feedback
-            })
+            body: JSON.stringify(requestBody)
         });
+
+        console.log('📡 Response status:', response.status);
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-            throw new Error(errorData.error || `HTTP ${response.status}: ${response.statusText}`);
+            console.error('❌ API Error:', errorData);
+            throw new Error(errorData.detail || errorData.error || `HTTP ${response.status}: ${response.statusText}`);
         }
 
         const data = await response.json();
-        console.log('AI suggestions received:', data);
+        console.log('✅ AI suggestions received successfully');
+        console.log('  Explanation:', data.explanation?.substring(0, 100) + '...');
+        console.log('  Has content changes:', !!data.content_changes);
+        console.log('  Has metadata changes:', !!data.metadata_changes);
 
         // Close loading modal
         document.querySelector('.source-modal')?.remove();
@@ -769,11 +796,19 @@ async function requestAIImprovement() {
         showAISuggestions(documentId, documentTitle, data);
 
     } catch (error) {
-        console.error('Error getting AI suggestions:', error);
+        console.error('❌ Error getting AI suggestions:', error);
+        console.error('Error stack:', error.stack);
         document.querySelector('.source-modal')?.remove();
 
+        let errorMessage = `Failed to get AI suggestions: ${error.message}`;
+        if (error.message.includes('Failed to fetch')) {
+            errorMessage += '\n\nPossible causes:\n- Network connection issue\n- CORS not configured\n- Function App not responding';
+        } else if (error.message.includes('Missing required fields')) {
+            errorMessage += '\n\nThe request is missing required information. Please try again.';
+        }
+
         // Show error
-        showError(`Failed to get AI suggestions: ${error.message}\n\nNote: This feature requires the /api/suggest-improvement endpoint to be deployed.`);
+        showError(errorMessage);
     }
 }
 
