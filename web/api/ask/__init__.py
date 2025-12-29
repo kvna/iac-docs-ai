@@ -71,28 +71,41 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
             max_retries=2
         )
 
-        # Generate embedding for the question
-        logger.info("Generating embedding for question...")
-        embedding_response = openai_client.embeddings.create(
-            input=question,
-            model=EMBEDDING_DEPLOYMENT
-        )
-        question_embedding = embedding_response.data[0].embedding
+        # Try to generate embedding for vector search, but fallback to keyword search if it fails
+        vector_query = None
+        try:
+            logger.info("Generating embedding for question...")
+            embedding_response = openai_client.embeddings.create(
+                input=question,
+                model=EMBEDDING_DEPLOYMENT
+            )
+            question_embedding = embedding_response.data[0].embedding
 
-        # Search for relevant documents
+            vector_query = VectorizedQuery(
+                vector=question_embedding,
+                k_nearest_neighbors=3,
+                fields="content_vector"
+            )
+            logger.info("Using hybrid search (vector + keyword)")
+        except Exception as e:
+            logger.warning(f"Could not generate embedding, using keyword search only: {e}")
+            vector_query = None
+
+        # Search for relevant documents (hybrid or keyword-only)
         logger.info("Searching for relevant documents...")
-        vector_query = VectorizedQuery(
-            vector=question_embedding,
-            k_nearest_neighbors=3,
-            fields="content_vector"
-        )
 
-        search_results = search_client.search(
-            search_text=question,
-            vector_queries=[vector_query],
-            select=["document_id", "title", "content", "document_type", "file_path", "topics", "technologies"],
-            top=3
-        )
+        search_params = {
+            "search_text": question,
+            "select": ["document_id", "title", "content", "document_type", "file_path", "topics", "technologies"],
+            "top": 3,
+            "query_type": "full",  # Use full text search
+            "search_mode": "any"    # Match any of the keywords
+        }
+
+        if vector_query:
+            search_params["vector_queries"] = [vector_query]
+
+        search_results = search_client.search(**search_params)
 
         # Collect relevant documents
         documents = []
