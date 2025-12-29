@@ -10,8 +10,16 @@ import os
 from pathlib import Path
 import yaml
 import re
+import urllib.request
+import urllib.error
 
 logger = logging.getLogger(__name__)
+
+# GitHub configuration
+GITHUB_REPO = "kvna/iac-docs-ai"
+GITHUB_BRANCH = "main"
+GITHUB_API_BASE = f"https://api.github.com/repos/{GITHUB_REPO}/contents/docs"
+GITHUB_RAW_BASE = f"https://raw.githubusercontent.com/{GITHUB_REPO}/{GITHUB_BRANCH}/docs"
 
 
 def extract_frontmatter(file_path):
@@ -29,6 +37,135 @@ def extract_frontmatter(file_path):
         return {}
     except Exception as e:
         logger.warning(f"Failed to extract frontmatter from {file_path}: {e}")
+        return {}
+
+
+def get_document_tree_from_github():
+    """
+    Build a tree structure by fetching documents from GitHub.
+    """
+    logger.info("Fetching document tree from GitHub")
+
+    # Define folder structure
+    folder_config = {
+        "day1": {"display_name": "Day 1 - First Day", "order": 1},
+        "week1-4": {"display_name": "Week 1-4 - Foundation", "order": 2},
+        "month1-2": {"display_name": "Month 1-2 - Intermediate", "order": 3},
+        "month3-6": {"display_name": "Month 3-6 - Advanced", "order": 4},
+        "month6-12": {"display_name": "Month 6-12 - Expert", "order": 5},
+        "reference": {"display_name": "Reference - Lookups", "order": 6},
+        "troubleshooting": {"display_name": "Troubleshooting - Solutions", "order": 7},
+        "learning-paths": {"display_name": "Learning Paths - Guided", "order": 8},
+    }
+
+    folders = []
+    total_count = 0
+
+    # Fetch each folder from GitHub
+    for folder_name, config in sorted(folder_config.items(), key=lambda x: x[1]["order"]):
+        try:
+            # Fetch folder contents from GitHub API
+            api_url = f"{GITHUB_API_BASE}/{folder_name}"
+            logger.info(f"Fetching: {api_url}")
+
+            req = urllib.request.Request(api_url)
+            req.add_header('User-Agent', 'Azure-Function-DocBrowser')
+
+            with urllib.request.urlopen(req, timeout=10) as response:
+                folder_contents = json.loads(response.read().decode('utf-8'))
+
+            documents = []
+
+            # Process each markdown file
+            for item in folder_contents:
+                if item['type'] == 'file' and item['name'].endswith('.md'):
+                    try:
+                        # Fetch raw file content
+                        raw_url = f"{GITHUB_RAW_BASE}/{folder_name}/{item['name']}"
+                        logger.info(f"Fetching document: {raw_url}")
+
+                        req = urllib.request.Request(raw_url)
+                        req.add_header('User-Agent', 'Azure-Function-DocBrowser')
+
+                        with urllib.request.urlopen(req, timeout=10) as response:
+                            content = response.read().decode('utf-8')
+
+                        # Extract frontmatter
+                        metadata = extract_frontmatter_from_content(content)
+
+                        # Extract title
+                        title = metadata.get('title', '')
+                        if not title:
+                            # Try to extract from first heading
+                            content_no_fm = re.sub(r'^---\s*\n.*?\n---\s*\n', '', content, flags=re.DOTALL)
+                            heading_match = re.search(r'^#\s+(.+)$', content_no_fm, re.MULTILINE)
+                            if heading_match:
+                                title = heading_match.group(1)
+                            else:
+                                title = item['name'].replace('.md', '').replace('-', ' ').title()
+
+                        doc_info = {
+                            "file_name": item['name'],
+                            "document_id": metadata.get('document_id', item['name'].replace('.md', '')),
+                            "title": title,
+                            "document_type": metadata.get('document_type', 'unknown'),
+                            "skill_level": metadata.get('skill_level', folder_name),
+                            "topics": metadata.get('topics', []),
+                            "technologies": metadata.get('technologies', []),
+                            "estimated_time": metadata.get('estimated_time', 0),
+                            "last_reviewed": metadata.get('last_reviewed', ''),
+                            "review_status": metadata.get('review_status', ''),
+                            "file_path": f"{folder_name}/{item['name']}",
+                            "search_keywords": metadata.get('search_keywords', []),
+                        }
+
+                        documents.append(doc_info)
+                        total_count += 1
+
+                    except Exception as e:
+                        logger.error(f"Error processing {item['name']}: {e}")
+                        continue
+
+            if documents:
+                folders.append({
+                    "name": folder_name,
+                    "display_name": config["display_name"],
+                    "order": config["order"],
+                    "document_count": len(documents),
+                    "documents": documents
+                })
+
+        except urllib.error.HTTPError as e:
+            if e.code == 404:
+                logger.warning(f"Folder {folder_name} not found on GitHub")
+                continue
+            else:
+                logger.error(f"HTTP error fetching {folder_name}: {e}")
+                continue
+        except Exception as e:
+            logger.error(f"Error fetching {folder_name}: {e}")
+            continue
+
+    logger.info(f"Successfully loaded {total_count} documents from {len(folders)} folders")
+
+    return {
+        "folders": folders,
+        "total_count": total_count
+    }
+
+
+def extract_frontmatter_from_content(content):
+    """Extract YAML frontmatter from markdown content string"""
+    try:
+        # Match YAML frontmatter (---...---)
+        match = re.match(r'^---\s*\n(.*?)\n---\s*\n', content, re.DOTALL)
+        if match:
+            frontmatter_text = match.group(1)
+            metadata = yaml.safe_load(frontmatter_text)
+            return metadata
+        return {}
+    except Exception as e:
+        logger.warning(f"Failed to extract frontmatter: {e}")
         return {}
 
 
@@ -155,30 +292,8 @@ def main(req: func.HttpRequest) -> func.HttpResponse:
         doc_type_filter = req.params.get('document_type')
         format_type = req.params.get('format', 'tree')
 
-        # Determine docs directory - try multiple locations
-        possible_paths = [
-            os.path.join(os.path.dirname(__file__), '..', '..', '..', 'docs'),
-            os.path.join(os.getcwd(), 'docs'),
-            '/home/site/wwwroot/docs',  # Azure Function App path
-        ]
-
-        docs_dir = None
-        for path in possible_paths:
-            if os.path.exists(path):
-                docs_dir = path
-                logger.info(f"Found docs directory at: {docs_dir}")
-                break
-
-        if not docs_dir:
-            logger.error("Docs directory not found in any expected location")
-            return func.HttpResponse(
-                json.dumps({"error": "Documentation directory not found"}),
-                status_code=500,
-                mimetype="application/json"
-            )
-
-        # Get document tree
-        tree = get_document_tree(docs_dir)
+        # Get document tree from GitHub
+        tree = get_document_tree_from_github()
 
         # Apply filters if specified
         if folder_filter:
