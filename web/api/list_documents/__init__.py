@@ -162,11 +162,28 @@ def extract_frontmatter_from_content(content):
         if match:
             frontmatter_text = match.group(1)
             metadata = yaml.safe_load(frontmatter_text)
+            # Convert date objects to strings for JSON serialization
+            if metadata:
+                metadata = convert_dates_to_strings(metadata)
             return metadata
         return {}
     except Exception as e:
         logger.warning(f"Failed to extract frontmatter: {e}")
         return {}
+
+
+def convert_dates_to_strings(obj):
+    """Convert date/datetime objects to ISO format strings for JSON serialization"""
+    import datetime
+
+    if isinstance(obj, (datetime.date, datetime.datetime)):
+        return obj.isoformat()
+    elif isinstance(obj, dict):
+        return {k: convert_dates_to_strings(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_dates_to_strings(item) for item in obj]
+    else:
+        return obj
 
 
 def get_document_tree(docs_dir):
