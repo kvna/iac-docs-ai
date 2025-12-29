@@ -194,8 +194,13 @@ async function openSourceFile(source) {
     console.log('Opening source:', source);
 
     // Try to reconstruct the full path from document_id
-    const docId = source.document_id || '';
+    let docId = source.document_id || '';
     const docType = source.document_type || '';
+
+    // Remove .md extension if it exists (we'll add it back consistently)
+    if (docId.endsWith('.md')) {
+        docId = docId.slice(0, -3);
+    }
 
     let fullPath = '';
 
