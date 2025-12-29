@@ -3,13 +3,17 @@ document_id: concept-iac-overview
 document_type: concept
 skill_level: day1
 topics: [iac, fundamentals, philosophy]
-technologies: [terraform_v1.5+, azure]
+technologies: [terraform_v1.5+, azure, aws]
 prerequisites:
   - "None - this is a starting point"
+  - "Basic understanding of AWS services"
+  - "Familiarity with Terraform syntax"
 learning_outcomes:
   - Understand what Infrastructure as Code means
   - Explain why IaC is valuable
   - Identify when to use IaC vs manual processes
+  - Deploy a simple EC2 instance on AWS using Terraform
+  - Understand the process of initializing and applying Terraform configurations for AWS
 estimated_time: 15
 last_reviewed: 2025-12-27
 review_status: current
@@ -20,15 +24,22 @@ search_keywords:
   - "infrastructure as code explained"
   - "iac benefits"
   - "declarative infrastructure"
+  - "AWS Terraform example"
+  - "deploy EC2 with Terraform"
+  - "Terraform AWS tutorial"
 related_documents:
   - howto-environment-setup
   - concept-terraform-workflow
   - learning-path-day1
+  - howto-aws-terraform-example
 glossary_terms:
   - iac
   - declarative
   - terraform
   - azure
+  - aws
+  - ec2
+  - instance
 ---
 
 # What is Infrastructure as Code?
@@ -184,12 +195,39 @@ Then run:
 terraform apply
 ```
 
+**Note**: Similar examples for AWS can be found in the [AWS Terraform Provider Documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs).
+
 **Result**:
 - Exact same configuration every time
 - Documented in code
 - Version controlled
 - Can be replicated instantly
 - **Time for subsequent creations**: ~1 minute
+
+## Example: Deploying a Simple EC2 Instance on AWS
+
+To illustrate how to deploy infrastructure using Terraform, here's a simple example of creating an EC2 instance on AWS:
+
+```hcl
+provider "aws" {
+  region = "us-east-1"
+}
+
+resource "aws_instance" "example" {
+  ami           = "ami-0c55b159cbfafe1f0"  # Replace with a valid AMI ID
+  instance_type = "t2.micro"
+
+  tags = {
+    Name = "ExampleInstance"
+  }
+}
+```
+
+1. Save the above code in a file named `main.tf`.
+2. Run `terraform init` to initialize the AWS provider.
+3. Execute `terraform apply` to create the EC2 instance.
+
+**Result**: An EC2 instance will be created in your AWS account, demonstrating the power of IaC.
 
 ## Benefits and Trade-offs
 
@@ -334,6 +372,7 @@ terraform apply
 - [Microsoft: What is Infrastructure as Code?](https://learn.microsoft.com/en-us/devops/deliver/what-is-infrastructure-as-code)
 - [HashiCorp: Introduction to Infrastructure as Code with Terraform](https://www.terraform.io/intro)
 - [Azure Cloud Adoption Framework: IaC](https://learn.microsoft.com/en-us/azure/cloud-adoption-framework/ready/considerations/infrastructure-as-code)
+- [Terraform AWS Provider Documentation](https://registry.terraform.io/providers/hashicorp/aws/latest/docs)
 
 ## Glossary Terms Used
 
