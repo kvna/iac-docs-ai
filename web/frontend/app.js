@@ -759,8 +759,15 @@ async function requestAIImprovement() {
 
     try {
         const endpoint = `${CONFIG.apiEndpoint.replace('/ask', '/suggest-improvement')}`;
+
+        // Strip .md extension if present (backend expects document_id without extension)
+        let cleanDocumentId = documentId;
+        if (cleanDocumentId.endsWith('.md')) {
+            cleanDocumentId = cleanDocumentId.slice(0, -3);
+        }
+
         const requestBody = {
-            document_id: documentId,
+            document_id: cleanDocumentId,
             improvement_type: improvementType,
             feedback: feedback
         };
