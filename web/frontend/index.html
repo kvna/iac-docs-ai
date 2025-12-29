@@ -22,7 +22,27 @@
         </header>
 
         <main>
-            <div class="search-container">
+            <!-- Tab Navigation -->
+            <div class="tab-navigation">
+                <button class="tab-btn active" data-tab="search">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                        <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                    AI Search
+                </button>
+                <button class="tab-btn" data-tab="browse">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12 5H19C20.1046 5 21 5.89543 21 7V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" stroke-width="2"/>
+                        <path d="M3 7H21" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Browse Documents
+                </button>
+            </div>
+
+            <!-- Search Tab Content -->
+            <div id="search-tab" class="tab-content active">
+                <div class="search-container">
                 <div class="search-box">
                     <svg class="search-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
@@ -109,6 +129,59 @@
                             <li>How do I fix state lock conflicts?</li>
                             <li>What does 'resource already exists' mean?</li>
                         </ul>
+                    </div>
+                </div>
+            </div>
+            </div>
+
+            <!-- Browse Documents Tab Content -->
+            <div id="browse-tab" class="tab-content">
+                <div class="browse-container">
+                    <!-- Controls -->
+                    <div class="browse-controls">
+                        <div class="control-group">
+                            <label for="viewMode">View:</label>
+                            <select id="viewMode" class="control-select">
+                                <option value="tree">Folder Tree</option>
+                                <option value="flat">All Documents</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="groupBy">Group by:</label>
+                            <select id="groupBy" class="control-select">
+                                <option value="folder">Folder</option>
+                                <option value="document_type">Document Type</option>
+                                <option value="skill_level">Skill Level</option>
+                                <option value="topics">Topics</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <label for="sortBy">Sort by:</label>
+                            <select id="sortBy" class="control-select">
+                                <option value="default">Default Order</option>
+                                <option value="title_asc">Title (A-Z)</option>
+                                <option value="title_desc">Title (Z-A)</option>
+                                <option value="date_desc">Recently Reviewed</option>
+                                <option value="time_asc">Time (Shortest First)</option>
+                            </select>
+                        </div>
+
+                        <div class="control-group">
+                            <input type="text" id="filterInput" class="filter-input" placeholder="Filter documents...">
+                        </div>
+                    </div>
+
+                    <!-- Document Tree/List -->
+                    <div id="documentBrowser" class="document-browser">
+                        <div class="loading-state">
+                            <svg class="spinner" width="40" height="40" viewBox="0 0 24 24">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25"/>
+                                <path d="M12 2 A10 10 0 0 1 22 12" stroke="var(--primary)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                            </svg>
+                            <p>Loading documents...</p>
+                        </div>
                     </div>
                 </div>
             </div>

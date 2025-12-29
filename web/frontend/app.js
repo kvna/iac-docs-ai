@@ -1146,3 +1146,417 @@ function showPRSuccess(prUrl, documentTitle) {
 window.addEventListener('load', () => {
     queryInput.focus();
 });
+
+// =============================================================================
+// DOCUMENT BROWSER
+// =============================================================================
+
+// Document Browser State
+let documentData = null;
+let filteredData = null;
+
+// Tab Navigation
+const tabBtns = document.querySelectorAll('.tab-btn');
+const tabContents = document.querySelectorAll('.tab-content');
+
+tabBtns.forEach(btn => {
+    btn.addEventListener('click', () => {
+        const tabName = btn.dataset.tab;
+
+        // Update active states
+        tabBtns.forEach(b => b.classList.remove('active'));
+        tabContents.forEach(c => c.classList.remove('active'));
+
+        btn.classList.add('active');
+        document.getElementById(`${tabName}-tab`).classList.add('active');
+
+        // Load documents when switching to browse tab
+        if (tabName === 'browse' && !documentData) {
+            loadDocuments();
+        }
+    });
+});
+
+// Document Browser Controls
+const viewModeSelect = document.getElementById('viewMode');
+const groupBySelect = document.getElementById('groupBy');
+const sortBySelect = document.getElementById('sortBy');
+const filterInput = document.getElementById('filterInput');
+const documentBrowser = document.getElementById('documentBrowser');
+
+if (viewModeSelect) viewModeSelect.addEventListener('change', renderDocuments);
+if (groupBySelect) groupBySelect.addEventListener('change', renderDocuments);
+if (sortBySelect) sortBySelect.addEventListener('change', renderDocuments);
+if (filterInput) {
+    filterInput.addEventListener('input', debounce(() => renderDocuments(), 300));
+}
+
+// Debounce helper
+function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+        const later = () => {
+            clearTimeout(timeout);
+            func(...args);
+        };
+        clearTimeout(timeout);
+        timeout = setTimeout(later, wait);
+    };
+}
+
+// Load documents from API
+async function loadDocuments() {
+    try {
+        documentBrowser.innerHTML = `
+            <div class="loading-state">
+                <svg class="spinner" width="40" height="40" viewBox="0 0 24 24">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" fill="none" opacity="0.25"/>
+                    <path d="M12 2 A10 10 0 0 1 22 12" stroke="var(--primary)" stroke-width="2" fill="none" stroke-linecap="round"/>
+                </svg>
+                <p>Loading documents...</p>
+            </div>
+        `;
+
+        const endpoint = CONFIG.apiEndpoint.replace('/ask', '/list-documents');
+        console.log('Loading documents from:', endpoint);
+
+        const response = await fetch(endpoint);
+
+        if (!response.ok) {
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+
+        documentData = await response.json();
+        console.log('Loaded documents:', documentData);
+
+        renderDocuments();
+    } catch (error) {
+        console.error('Error loading documents:', error);
+        documentBrowser.innerHTML = `
+            <div class="empty-state">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z" fill="var(--error)"/>
+                </svg>
+                <p>Failed to load documents</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">${error.message}</p>
+            </div>
+        `;
+    }
+}
+
+// Render documents based on current filters and view mode
+function renderDocuments() {
+    if (!documentData) return;
+
+    const viewMode = viewModeSelect.value;
+    const groupBy = groupBySelect.value;
+    const sortBy = sortBySelect.value;
+    const filterText = filterInput.value.toLowerCase();
+
+    // Apply filter
+    filteredData = filterDocuments(documentData, filterText);
+
+    // Apply grouping
+    const grouped = groupDocuments(filteredData, groupBy);
+
+    // Apply sorting
+    sortDocuments(grouped, sortBy);
+
+    // Render based on view mode
+    if (viewMode === 'tree') {
+        renderTreeView(grouped);
+    } else {
+        renderFlatView(grouped);
+    }
+}
+
+// Filter documents by search text
+function filterDocuments(data, filterText) {
+    if (!filterText) return data;
+
+    const filtered = {
+        folders: [],
+        total_count: 0
+    };
+
+    data.folders.forEach(folder => {
+        const filteredDocs = folder.documents.filter(doc => {
+            return (
+                doc.title.toLowerCase().includes(filterText) ||
+                doc.document_type.toLowerCase().includes(filterText) ||
+                doc.topics.some(t => t.toLowerCase().includes(filterText)) ||
+                doc.technologies.some(t => t.toLowerCase().includes(filterText))
+            );
+        });
+
+        if (filteredDocs.length > 0) {
+            filtered.folders.push({
+                ...folder,
+                documents: filteredDocs,
+                document_count: filteredDocs.length
+            });
+            filtered.total_count += filteredDocs.length;
+        }
+    });
+
+    return filtered;
+}
+
+// Group documents by selected property
+function groupDocuments(data, groupBy) {
+    if (groupBy === 'folder') {
+        return data; // Already grouped by folder
+    }
+
+    // Flatten all documents
+    const allDocs = [];
+    data.folders.forEach(folder => {
+        allDocs.push(...folder.documents);
+    });
+
+    // Group by selected property
+    const groups = {};
+
+    allDocs.forEach(doc => {
+        let keys = [];
+
+        switch (groupBy) {
+            case 'document_type':
+                keys = [doc.document_type || 'unknown'];
+                break;
+            case 'skill_level':
+                keys = [doc.skill_level || 'unknown'];
+                break;
+            case 'topics':
+                keys = doc.topics.length > 0 ? doc.topics : ['untagged'];
+                break;
+            default:
+                keys = ['all'];
+        }
+
+        keys.forEach(key => {
+            if (!groups[key]) {
+                groups[key] = [];
+            }
+            groups[key].push(doc);
+        });
+    });
+
+    // Convert to folder structure
+    const folders = Object.entries(groups).map(([name, documents]) => ({
+        name: name,
+        display_name: formatGroupName(name, groupBy),
+        order: 0,
+        document_count: documents.length,
+        documents: documents
+    }));
+
+    return {
+        folders: folders,
+        total_count: allDocs.length
+    };
+}
+
+// Format group name for display
+function formatGroupName(name, groupBy) {
+    const formatMap = {
+        'concept': 'Concepts',
+        'howto': 'How-To Guides',
+        'reference': 'References',
+        'troubleshooting': 'Troubleshooting',
+        'learning-path': 'Learning Paths',
+        'day1': 'Day 1 - First Day',
+        'week1-4': 'Week 1-4 - Foundation',
+        'month1-2': 'Month 1-2 - Intermediate',
+        'month3-6': 'Month 3-6 - Advanced',
+        'month6-12': 'Month 6-12 - Expert',
+        'unknown': 'Uncategorized',
+        'untagged': 'Untagged'
+    };
+
+    return formatMap[name] || name.charAt(0).toUpperCase() + name.slice(1);
+}
+
+// Sort documents within groups
+function sortDocuments(data, sortBy) {
+    data.folders.forEach(folder => {
+        switch (sortBy) {
+            case 'title_asc':
+                folder.documents.sort((a, b) => a.title.localeCompare(b.title));
+                break;
+            case 'title_desc':
+                folder.documents.sort((a, b) => b.title.localeCompare(a.title));
+                break;
+            case 'date_desc':
+                folder.documents.sort((a, b) => {
+                    const dateA = a.last_reviewed || '';
+                    const dateB = b.last_reviewed || '';
+                    return dateB.localeCompare(dateA);
+                });
+                break;
+            case 'time_asc':
+                folder.documents.sort((a, b) => (a.estimated_time || 999) - (b.estimated_time || 999));
+                break;
+            // default: keep original order
+        }
+    });
+}
+
+// Render tree view
+function renderTreeView(data) {
+    if (data.total_count === 0) {
+        documentBrowser.innerHTML = `
+            <div class="empty-state">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="var(--text-secondary)" stroke-width="2"/>
+                    <path d="M14 2V8H20" stroke="var(--text-secondary)" stroke-width="2"/>
+                </svg>
+                <p>No documents found</p>
+                <p style="font-size: 0.875rem; margin-top: 0.5rem;">Try adjusting your filters</p>
+            </div>
+        `;
+        return;
+    }
+
+    let html = '';
+
+    data.folders.forEach(folder => {
+        html += `
+            <div class="folder-section">
+                <div class="folder-header" onclick="toggleFolder(this)">
+                    <div class="folder-title">
+                        <svg class="folder-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                            <path d="M3 7V5C3 3.89543 3.89543 3 5 3H9.58579C9.851 3 10.1054 3.10536 10.2929 3.29289L12 5H19C20.1046 5 21 5.89543 21 7V19C21 20.1046 20.1046 21 19 21H5C3.89543 21 3 20.1046 3 19V7Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                        <span>${escapeHtml(folder.display_name)}</span>
+                        <span class="folder-count">${folder.document_count} document${folder.document_count !== 1 ? 's' : ''}</span>
+                    </div>
+                    <svg class="folder-expand-icon" width="20" height="20" viewBox="0 0 24 24" fill="none">
+                        <path d="M9 18l6-6-6-6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <div class="folder-documents">
+                    ${renderDocumentList(folder.documents)}
+                </div>
+            </div>
+        `;
+    });
+
+    documentBrowser.innerHTML = html;
+}
+
+// Render flat list view
+function renderFlatView(data) {
+    if (data.total_count === 0) {
+        documentBrowser.innerHTML = `
+            <div class="empty-state">
+                <svg width="60" height="60" viewBox="0 0 24 24" fill="none">
+                    <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="var(--text-secondary)" stroke-width="2"/>
+                    <path d="M14 2V8H20" stroke="var(--text-secondary)" stroke-width="2"/>
+                </svg>
+                <p>No documents found</p>
+            </div>
+        `;
+        return;
+    }
+
+    // Flatten all documents
+    const allDocs = [];
+    data.folders.forEach(folder => {
+        allDocs.push(...folder.documents);
+    });
+
+    documentBrowser.innerHTML = `
+        <div class="folder-documents expanded">
+            ${renderDocumentList(allDocs)}
+        </div>
+    `;
+}
+
+// Render list of document items
+function renderDocumentList(documents) {
+    return documents.map(doc => `
+        <div class="document-item" onclick='viewDocumentFromBrowser(${JSON.stringify(doc)})'>
+            <svg class="document-icon" width="24" height="24" viewBox="0 0 24 24" fill="none">
+                <path d="M14 2H6C4.9 2 4 2.9 4 4V20C4 21.1 4.9 22 6 22H18C19.1 22 20 21.1 20 20V8L14 2Z" stroke="var(--primary)" stroke-width="2"/>
+                <path d="M14 2V8H20" stroke="var(--primary)" stroke-width="2"/>
+                <path d="M8 13H16M8 17H13" stroke="var(--primary)" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <div class="document-content">
+                <div class="document-title">${escapeHtml(doc.title)}</div>
+                <div class="document-meta">
+                    <span class="meta-badge type-${doc.document_type}">${doc.document_type}</span>
+                    ${doc.estimated_time ? `<span class="meta-badge">⏱️ ${doc.estimated_time} min</span>` : ''}
+                    ${doc.last_reviewed ? `<span class="meta-badge">📅 ${doc.last_reviewed}</span>` : ''}
+                </div>
+                ${doc.topics && doc.topics.length > 0 ? `
+                    <div class="document-topics">
+                        ${doc.topics.slice(0, 5).map(topic => `<span class="topic-tag">${escapeHtml(topic)}</span>`).join('')}
+                        ${doc.topics.length > 5 ? `<span class="topic-tag">+${doc.topics.length - 5} more</span>` : ''}
+                    </div>
+                ` : ''}
+            </div>
+        </div>
+    `).join('');
+}
+
+// Toggle folder expansion
+function toggleFolder(header) {
+    const folderSection = header.parentElement;
+    const documents = folderSection.querySelector('.folder-documents');
+
+    header.classList.toggle('expanded');
+    documents.classList.toggle('expanded');
+}
+
+// View document from browser (reuses existing modal logic)
+async function viewDocumentFromBrowser(doc) {
+    console.log('Opening document from browser:', doc);
+
+    // Construct GitHub raw URL
+    const githubRawBaseUrl = 'https://raw.githubusercontent.com/kvna/iac-docs-ai/main/docs/';
+    const githubRawUrl = githubRawBaseUrl + doc.file_path;
+
+    console.log('Fetching from:', githubRawUrl);
+
+    // Show loading modal
+    showLoadingModal('Loading document...');
+
+    try {
+        const response = await fetch(githubRawUrl, {
+            mode: 'cors',
+            cache: 'no-cache'
+        });
+
+        if (!response.ok) {
+            throw new Error(`Failed to fetch document (HTTP ${response.status})`);
+        }
+
+        const markdownContent = await response.text();
+
+        // Remove YAML frontmatter
+        const contentWithoutFrontmatter = markdownContent.replace(/^---[\s\S]*?---\n\n?/m, '');
+
+        // Close loading modal
+        document.querySelector('.source-modal')?.remove();
+
+        // Display in modal (reuse existing function)
+        showSourceDocumentModal({
+            title: doc.title,
+            document_id: doc.document_id,
+            document_type: doc.document_type,
+            file_path: doc.file_path
+        }, contentWithoutFrontmatter);
+
+    } catch (error) {
+        console.error('Error fetching document:', error);
+        document.querySelector('.source-modal')?.remove();
+
+        showFetchErrorModal({
+            title: doc.title,
+            document_id: doc.document_id,
+            document_type: doc.document_type,
+            file_path: doc.file_path
+        }, error.message, githubRawUrl);
+    }
+}
